@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /chat
+Disallow: /session/*
+
+Sitemap: https://umetvchat.web.app/sitemap.xml
