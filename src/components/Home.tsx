@@ -119,9 +119,15 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
         { merge: true }
       );
 
+      const localProfileCache = {
+        name: profile.name,
+        age: profile.age,
+        interests: profile.interests
+      };
+
       localStorage.setItem(
         `umetv_profile_${user.uid}`,
-        JSON.stringify(profile)
+        JSON.stringify(localProfileCache)
       );
 
       setProfileData(profile);
