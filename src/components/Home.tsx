@@ -75,20 +75,21 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     const user = auth.currentUser;
 
     if (!user) {
-      setAuthError('Authentication session not found. Please log in again.');
-      console.error('[PROFILE] auth.currentUser is null');
+      setAuthError('Firebase login session is not ready. Please wait a moment and try again.');
+      console.error('[PROFILE] No authenticated Firebase user');
       return;
     }
 
     const name = profileData.name.trim();
-    const dob = new Date(profileData.age);
 
     if (!name || !profileData.age || !profileData.gender) {
-      setAuthError('Please fill in Name, Age, and Gender.');
+      setAuthError('Please fill in Name, Date of Birth, and Gender.');
       return;
     }
 
-    if (Number.isNaN(dob.getTime()) || dob > new Date()) {
+    const dob = new Date(profileData.age);
+
+    if (isNaN(dob.getTime()) || dob > new Date()) {
       setAuthError('Please enter a valid Date of Birth.');
       return;
     }
@@ -106,11 +107,11 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
       name,
       age: profileData.age,
       gender: profileData.gender,
-      interests: Array.isArray(profileData.interests) ? profileData.interests : [],
+      interests: Array.isArray(profileData.interests) ? profileData.interests : []
     };
 
     try {
-      console.log('[PROFILE] Saving profile for UID:', user.uid);
+      console.log('[PROFILE] Saving for UID:', user.uid);
 
       await setDoc(
         doc(db, 'users', user.uid),
@@ -126,11 +127,11 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
       setProfileData(profile);
       setShowProfileSetup(false);
 
-      console.log('[PROFILE] Profile saved successfully');
-    } catch (error: any) {
-      console.error('[PROFILE] Save failed:', error);
+      console.log('[PROFILE] SAVE SUCCESS');
+    } catch (e) {
+      console.error('[PROFILE] SAVE ERROR:', e);
       setAuthError(
-        `${error?.code || 'unknown'}: ${error?.message || 'Failed to save profile'}`
+        `${e?.code || 'unknown'}: ${e?.message || 'Failed to save profile'}`
       );
     }
   };
