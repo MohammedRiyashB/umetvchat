@@ -72,30 +72,66 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
   const isGoogle = auth.currentUser && !auth.currentUser.isAnonymous;
 
   const saveProfile = async () => {
-    if (!auth.currentUser) return;
-    if (!profileData.name.trim() || !profileData.age || !profileData.gender) {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setAuthError('Authentication session not found. Please log in again.');
+      console.error('[PROFILE] auth.currentUser is null');
+      return;
+    }
+
+    const name = profileData.name.trim();
+    const dob = new Date(profileData.age);
+
+    if (!name || !profileData.age || !profileData.gender) {
       setAuthError('Please fill in Name, Age, and Gender.');
       return;
     }
-    const dob = new Date(profileData.age);
-    if (isNaN(dob.getTime()) || dob > new Date()) {
+
+    if (Number.isNaN(dob.getTime()) || dob > new Date()) {
       setAuthError('Please enter a valid Date of Birth.');
       return;
     }
-    const ageDifMs = Date.now() - dob.getTime();
-    const ageDate = new Date(ageDifMs); 
-    if (Math.abs(ageDate.getUTCFullYear() - 1970) < 18) {
+
+    const age = new Date(Date.now() - dob.getTime()).getUTCFullYear() - 1970;
+
+    if (age < 18) {
       setAuthError('You must be at least 18 years old to use UmeTV.');
       return;
     }
+
     setAuthError('');
+
+    const profile = {
+      name,
+      age: profileData.age,
+      gender: profileData.gender,
+      interests: Array.isArray(profileData.interests) ? profileData.interests : [],
+    };
+
     try {
-      await setDoc(doc(db, 'users', auth.currentUser.uid), profileData);
-      localStorage.setItem(`umetv_profile_${auth.currentUser.uid}`, JSON.stringify(profileData));
+      console.log('[PROFILE] Saving profile for UID:', user.uid);
+
+      await setDoc(
+        doc(db, 'users', user.uid),
+        profile,
+        { merge: true }
+      );
+
+      localStorage.setItem(
+        `umetv_profile_${user.uid}`,
+        JSON.stringify(profile)
+      );
+
+      setProfileData(profile);
       setShowProfileSetup(false);
-    } catch (e: any) {
-      console.error("PROFILE SAVE ERROR:", e);
-      setAuthError(`${e.code || "unknown"}: ${e.message || "Failed to save profile"}`);
+
+      console.log('[PROFILE] Profile saved successfully');
+    } catch (error: any) {
+      console.error('[PROFILE] Save failed:', error);
+      setAuthError(
+        `${error?.code || 'unknown'}: ${error?.message || 'Failed to save profile'}`
+      );
     }
   };
 
