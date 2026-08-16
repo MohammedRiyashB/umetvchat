@@ -26,6 +26,6 @@ const auth = initializeAuth(app, {
 });
 
 const googleProvider = new GoogleAuthProvider();
-const db = getFirestore(app);
+const db = getFirestore(app, "umetvchat");
 
 export { auth, googleProvider, db };
