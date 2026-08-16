@@ -48,7 +48,6 @@ async function startServer() {
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
     crossOriginResourcePolicy: false,
-    frameguard: false,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
