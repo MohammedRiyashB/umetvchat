@@ -268,19 +268,16 @@ async function startServer() {
       if (checkRateLimit(myUid, 'join_queue', 5)) return;
 
       let profile = clientProfile;
-      if (firebaseAdminInitialized) {
+      // Use the profile sent by the authenticated client.
+      // Only query Firestore when the client did not provide a profile.
+      if (firebaseAdminInitialized && !profile) {
         try {
           const docSnap = await getFirestore().collection('users').doc(myUid).get();
           if (docSnap.exists) {
             profile = docSnap.data();
-          } else {
-            socket.emit("game_error", { message: "Server profile not found. Please complete your profile." });
-            return;
           }
         } catch (error) {
-          console.error("Failed to fetch profile for", myUid, error);
-          socket.emit("game_error", { message: "Failed to verify profile." });
-          return;
+          console.error("[PROFILE] Firestore lookup failed:", error);
         }
       }
 
