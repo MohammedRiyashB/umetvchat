@@ -722,13 +722,20 @@ async function startServer() {
 
   app.get("/api/online_users", (req, res) => res.json({ count: io.engine.clientsCount }));
 
+  const staticRouteLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 120, // limit each IP to 120 requests per minute for static/fallback routes
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath, { maxAge: '1y' }));
-    app.get("*", (req, res) => res.sendFile(path.join(distPath, "index.html")));
+    app.use(staticRouteLimiter, express.static(distPath, { maxAge: '1y' }));
+    app.get("*", staticRouteLimiter, (req, res) => res.sendFile(path.join(distPath, "index.html")));
   }
   
   httpServer.listen(PORT, "0.0.0.0", () => {
