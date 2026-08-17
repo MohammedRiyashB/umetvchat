@@ -1,0 +1,223 @@
+--------- beginning of system
+08-17 09:31:03.108 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:03.108 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:03.108 16637 16637 D ActivityThread: ComponentInfo{com.termux/com.termux.app.TermuxActivity} checkFinished=false 2
+08-17 09:31:03.108 16637 16637 D ResourcesManagerExtImpl: applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+08-17 09:31:03.128 16637 16637 D VRI[TermuxActivity]: relayoutWindow result, sizeChanged:false, surfaceControlChanged:true, transformHintChanged:false, mSurfaceSize:Point(1080, 2400), mLastSurfaceSize:Point(1080, 2400), mWidth:1080, mHeight:2400, requestedWidth:1080, requestedHeight:2400, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:-1920925440, tmpFrames:ClientWindowFrames{frame=[0,0][1080,2400] display=[0,0][1080,2400] parentFrame=[0,0][0,0]}, relayoutAsync:false, mSyncSeqId:0
+08-17 09:31:03.128 16637 16637 W VRI[TermuxActivity]: updateBlastSurfaceIfNeeded, surfaceSize:Point(1080, 2400), lastSurfaceSize:Point(1080, 2400), format:-1, blastBufferQueue:null
+08-17 09:31:03.163 16637 16637 W VRI[TermuxActivity]: handleResized, msg:, frameChanged:false, configChanged:false, displayChanged:false, attachedFrameChanged:false, compatScaleChanged:false, pendingDragResizing=false
+08-17 09:31:03.164 16637 16637 D ResourcesManagerExtImpl: applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+08-17 09:31:03.289 16637 16637 W VRI[TermuxActivity]: handleResized abandoned!
+08-17 09:31:03.319 16637 16637 W VRI[TermuxActivity]: handleResized abandoned!
+08-17 09:31:04.746 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:04.746 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:04.746 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:04.769 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:04.769 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:04.769 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:04.809 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:04.809 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:04.810 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+--------- beginning of main
+08-17 09:31:06.013 16637 17833 I PowerHalMgrImpl: hdl:76633, pid:16637 
+08-17 09:31:06.305 16637 16637 D VRI[PopupWindow:4492ff7]: setLayoutParams: x = 89, y = 411
+08-17 09:31:06.311 16637 16637 I SurfaceControl:  setExtendedRangeBrightness sc=Surface(name=PopupWindow:4492ff7)/@0xb1ec918,currentBufferRatio=1.0,desiredRatio=1.0
+08-17 09:31:06.527 16637 16637 D OplusScrollToTopManager: PopupWindow:4492ff7,is not FullScreenRoot : window is sub type
+08-17 09:31:06.921 16637 16637 E IJankManager: slideSceneEnd unknown scene 1000 mScene:-1
+08-17 09:31:07.035 16637 16637 D OplusViewDragTouchViewHelper: dispatchTouchView action = 1
+08-17 09:31:07.035 16637 16637 D ViewRootImplExtImpl: the up motion event handled by client, just return
+08-17 09:31:07.041 16637 16637 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.widget.PopupWindow$PopupDecorView$$ExternalSyntheticLambda1@11795fc
+08-17 09:31:07.041 16637 16637 D OplusScrollToTopManager: PopupWindow:f84da17,window dying
+08-17 09:31:07.041 16637 16637 D OplusScrollToTopManager: PopupWindow:f84da17,unregisterSystemUIBroadcastReceiver 
+08-17 09:31:07.041 16637 16637 D OplusScrollToTopManager: PopupWindow:f84da17, unregisterSystemUIBroadcastReceiver failed java.lang.IllegalArgumentException: Receiver not registered: android.view.OplusScrollToTopManager$2@4cf4dd8
+08-17 09:31:07.041 16637 16637 D HWUI    : RenderProxy::destroy: this=0xb4000075889a9d00, mContext=0xb400007512b8d100
+08-17 09:31:07.041 16637 16657 D HWUI    : SkiaOpenGLPipeline::setSurface: this=0xb40000758f250dc0, surface=NULL
+08-17 09:31:07.042 16637 16637 D BLASTBufferQueue: [VRI[PopupWindow:f84da17]#390](f:0,a:2) destructor()
+08-17 09:31:07.042 16637 16637 D BufferQueueConsumer: [VRI[PopupWindow:f84da17]#390(BLAST Consumer)390](id:40fd00000186,api:0,p:-1,c:16637) disconnect
+08-17 09:31:07.049 16637 16637 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.widget.PopupWindow$PopupDecorView$$ExternalSyntheticLambda1@b5aa894
+08-17 09:31:07.049 16637 16637 D OplusScrollToTopManager: PopupWindow:1390de9,window dying
+08-17 09:31:07.049 16637 16637 D OplusScrollToTopManager: PopupWindow:1390de9,unregisterSystemUIBroadcastReceiver 
+08-17 09:31:07.049 16637 16637 D OplusScrollToTopManager: PopupWindow:1390de9, unregisterSystemUIBroadcastReceiver failed java.lang.IllegalArgumentException: Receiver not registered: android.view.OplusScrollToTopManager$2@30c2531
+08-17 09:31:07.049 16637 16637 D HWUI    : RenderProxy::destroy: this=0xb40000752af5cc00, mContext=0xb400007512302580
+08-17 09:31:07.049 16637 16657 D HWUI    : SkiaOpenGLPipeline::setSurface: this=0xb40000758f250f00, surface=NULL
+08-17 09:31:07.050 16637 16637 D BLASTBufferQueue: [VRI[PopupWindow:1390de9]#391](f:0,a:2) destructor()
+08-17 09:31:07.050 16637 16637 D BufferQueueConsumer: [VRI[PopupWindow:1390de9]#391(BLAST Consumer)391](id:40fd00000187,api:0,p:-1,c:16637) disconnect
+08-17 09:31:07.421 16637 16637 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.widget.PopupWindow$PopupDecorView$$ExternalSyntheticLambda1@6a762c
+08-17 09:31:07.422 16637 16637 D OplusScrollToTopManager: PopupWindow:4492ff7,window dying
+08-17 09:31:07.422 16637 16637 D OplusScrollToTopManager: PopupWindow:4492ff7,unregisterSystemUIBroadcastReceiver 
+08-17 09:31:07.422 16637 16637 D OplusScrollToTopManager: PopupWindow:4492ff7, unregisterSystemUIBroadcastReceiver failed java.lang.IllegalArgumentException: Receiver not registered: android.view.OplusScrollToTopManager$2@dcce36d
+08-17 09:31:07.423 16637 16637 D HWUI    : RenderProxy::destroy: this=0xb40000752af5d500, mContext=0xb400007512319400
+08-17 09:31:07.423 16637 16657 D HWUI    : SkiaOpenGLPipeline::setSurface: this=0xb40000758f251040, surface=NULL
+08-17 09:31:07.424 16637 16637 D BLASTBufferQueue: [VRI[PopupWindow:4492ff7]#392](f:0,a:2) destructor()
+08-17 09:31:07.424 16637 16637 D BufferQueueConsumer: [VRI[PopupWindow:4492ff7]#392(BLAST Consumer)392](id:40fd00000188,api:0,p:-1,c:16637) disconnect
+08-17 09:31:07.497 16637 16637 I ImeTracker: system_server:aa53a39c: onCancelled at PHASE_CLIENT_ON_CONTROLS_CHANGED
+08-17 09:31:07.512 16637 16637 D VRI[TermuxActivity]: onFocusEvent false
+08-17 09:31:07.838 16637 16637 D VRI[TermuxActivity]: setWindowStopped stopped:true
+08-17 09:31:07.844 16637 16637 D SoundPool: native_release called
+08-17 09:31:07.844 16637 16637 D SoundPool::SoundManager: ~SoundManager() decoder quit begin
+08-17 09:31:07.844 16637 16637 D SoundPool::SoundDecoder: quit() bengin
+08-17 09:31:07.844 16637 16637 D SoundPool::SoundDecoder: quit() end
+08-17 09:31:07.844 16637 16637 D SoundPool::SoundManager: ~SoundManager() decoder quit end
+08-17 09:31:07.844 16637 16637 D SoundPool::SoundManager: ~SoundManager() SoundManager clear
+08-17 09:31:07.844 16637 16637 D SoundPool::SoundDecoder: quit() bengin
+08-17 09:31:07.844 16637 16637 D SoundPool::SoundDecoder: quit() end
+08-17 09:31:07.844 16637 16637 D SoundPool: native_release end
+08-17 09:31:07.860 16637 16637 D HWUI    : RenderProxy::destroy: this=0xb40000752af5c900, mContext=0xb40000751c7be080
+08-17 09:31:07.860 16637 16657 D HWUI    : SkiaOpenGLPipeline::setSurface: this=0xb40000758f250a00, surface=NULL
+08-17 09:31:07.861 16637 16657 D BLASTBufferQueue: [VRI[TermuxActivity]#389](f:0,a:2) destructor()
+08-17 09:31:07.861 16637 16657 D BufferQueueConsumer: [VRI[TermuxActivity]#389(BLAST Consumer)389](id:40fd00000185,api:0,p:-1,c:16637) disconnect
+08-17 09:31:07.864 16637 16637 D ViewRootImplExtImpl: wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=360, residentWS=false, scenario=0, bounds=Rect(0, 0 - 1080, 2400), relayoutAsync=false, flags=0, newFlags=1258302720, title=com.termux/com.termux.app.TermuxActivity
+08-17 09:31:07.881 16637 16657 D HWUI    : SkiaOpenGLPipeline::setSurface: this=0xb40000758f250dc0, surface=NULL
+08-17 09:31:07.882 16637 16657 D HWUI    : SkiaOpenGLPipeline::setSurface: this=0xb40000758f250f00, surface=NULL
+08-17 09:31:07.884 16637 16657 D HWUI    : SkiaOpenGLPipeline::setSurface: this=0xb40000758f251040, surface=NULL
+08-17 09:31:07.885 16637 16643 D SoundPool: native_release called
+08-17 09:31:07.886 16637 16643 D SoundPool: native_release end
+08-17 09:31:07.890 16637 16637 I ImeTracker: system_server:c3613a2e: onCancelled at PHASE_CLIENT_ON_CONTROLS_CHANGED
+08-17 09:31:07.891 16637 16637 D VRI[TermuxActivity]: relayoutWindow result, sizeChanged:false, surfaceControlChanged:true, transformHintChanged:false, mSurfaceSize:Point(1080, 2400), mLastSurfaceSize:Point(1080, 2400), mWidth:1080, mHeight:2400, requestedWidth:1080, requestedHeight:2400, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:false, attr.flag:-1920925440, tmpFrames:ClientWindowFrames{frame=[0,0][1080,2400] display=[0,0][1080,2400] parentFrame=[0,0][0,0]}, relayoutAsync:false, mSyncSeqId:0
+08-17 09:31:07.892 16637 16637 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=ImeCallback=ImeOnBackInvokedCallback@49346258 hash=261554472 Callback=android.window.IOnBackInvokedCallback$Stub$Proxy@5deb09e
+08-17 09:31:07.896 16637 17649 D VRI[TermuxActivity]: dispatchAppVisibility visible:false mUpcomingWindowFocus:false
+08-17 09:31:08.232 16637 16681 D BufferPoolAccessor2.0: bufferpool2 0xb40000750c6ee228 : 0(0 size) total buffers - 0(0 size) used buffers - 2/7 (recycle/alloc) - 5/24 (fetch/transfer)
+08-17 09:31:08.232 16637 16681 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+08-17 09:31:08.523 16637 16651 D OplusScrollToTopManager: com.termux/com.termux.app.TermuxActivity,This com.android.internal.policy.DecorView{7823af4 I.E...... R......D 0,0-1080,2400 alpha=1.0 viewInfo = }[TermuxActivity] change focus to false
+08-17 09:31:09.018 16637 17833 I PowerHalMgrImpl: hdl:76656, pid:16637 
+08-17 09:31:16.131 16637  6942 D VRI[TermuxActivity]: dispatchAppVisibility visible:true mUpcomingWindowFocus:false
+08-17 09:31:16.146 16637 16637 D VRI[TermuxActivity]: setWindowStopped stopped:false
+08-17 09:31:16.149 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:16.149 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:16.149 16637 16637 D ActivityThread: ComponentInfo{com.termux/com.termux.app.TermuxActivity} checkFinished=false 2
+08-17 09:31:16.149 16637 16637 D ResourcesManagerExtImpl: applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+08-17 09:31:16.155 16637 16637 D ViewRootImplExtImpl: wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=360, residentWS=false, scenario=0, bounds=Rect(0, 0 - 1080, 2400), relayoutAsync=false, flags=0, newFlags=1258302720, title=com.termux/com.termux.app.TermuxActivity
+08-17 09:31:16.170 16637 16637 D VRI[TermuxActivity]: relayoutWindow result, sizeChanged:false, surfaceControlChanged:true, transformHintChanged:false, mSurfaceSize:Point(1080, 2400), mLastSurfaceSize:Point(1080, 2400), mWidth:1080, mHeight:2400, requestedWidth:1080, requestedHeight:2400, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:-1920925440, tmpFrames:ClientWindowFrames{frame=[0,0][1080,2400] display=[0,0][1080,2400] parentFrame=[0,0][0,0]}, relayoutAsync:false, mSyncSeqId:0
+08-17 09:31:16.171 16637 16637 W VRI[TermuxActivity]: updateBlastSurfaceIfNeeded, surfaceSize:Point(1080, 2400), lastSurfaceSize:Point(1080, 2400), format:-1, blastBufferQueue:null
+08-17 09:31:16.171 16637 16637 D BufferQueueConsumer: [](id:40fd00000189,api:0,p:-1,c:16637) connect: controlledByApp=false
+08-17 09:31:16.171 16637 16637 D BufferQueueConsumer: [VRI[TermuxActivity]#393(BLAST Consumer)393](id:40fd00000189,api:0,p:-1,c:16637) setMaxAcquiredBufferCount: 2
+08-17 09:31:16.173 16637 16657 D HWUI    : createSurface new attribs array
+08-17 09:31:16.174 16637 16657 D libEGL  : this is from skia gles
+08-17 09:31:16.175 16637 16637 I SurfaceControl:  setExtendedRangeBrightness sc=Surface(name=com.termux/com.termux.app.TermuxActivity)/@0x343cd78,currentBufferRatio=1.0,desiredRatio=1.0
+08-17 09:31:16.199 16637 16657 D BLASTBufferQueue: [VRI[TermuxActivity]#393](f:0,a:1) acquireNextBufferLocked size=1080x2400 mFrameNumber=1 applyTransaction=true mTimestamp=44616115227812(auto) mPendingTransactions.size=0 graphicBufferId=71455370905126 transform=0
+08-17 09:31:16.199 16637 16657 D VRI[TermuxActivity]: Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true syncBuffer=false
+08-17 09:31:16.199 16637 16637 D VRI[TermuxActivity]: draw finished. seqId=0
+08-17 09:31:16.200 16637 16637 W VRI[TermuxActivity]: handleResized, msg:, frameChanged:false, configChanged:false, displayChanged:false, attachedFrameChanged:false, compatScaleChanged:false, pendingDragResizing=false
+08-17 09:31:16.200 16637 16657 D VRI[TermuxActivity]: Received frameCommittedCallback lastAttemptedDrawFrameNum=2 didProduceBuffer=false syncBuffer=false
+08-17 09:31:16.200 16637 16637 D VRI[TermuxActivity]: draw finished. seqId=0
+08-17 09:31:16.201 16637 16637 D ResourcesManagerExtImpl: applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+08-17 09:31:16.210 16637  8559 W libc    : Access denied finding property "vendor.debug.stagefright.mediacodec.trace"
+08-17 09:31:16.219 16637 16682 D BufferPoolAccessor2.0: bufferpool2 0xb40000750c6ee228 : 0(0 size) total buffers - 0(0 size) used buffers - 2/7 (recycle/alloc) - 5/24 (fetch/transfer)
+08-17 09:31:16.219 16637 16682 D BufferPoolAccessor2.0: Destruction - bufferpool2 0xb40000750c6ee228 cached: 0/0M, 0/0% in use; allocs: 7, 29% recycled; transfers: 24, 79% unfetched
+08-17 09:31:16.221 16637  8561 D CCodecConfig: read media type: audio/vorbis
+08-17 09:31:16.224 16637 16637 D VRI[TermuxActivity]: onFocusEvent true
+08-17 09:31:16.224 16637 16637 E ImeBackDispatcher: Ime callback not found. Ignoring unregisterReceivedCallback. callbackId: 49346258
+08-17 09:31:16.226 16637  8561 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+08-17 09:31:16.227 16637  8561 D ReflectedParamUpdater: extent() != 1 for single value type: output.subscribed-indices.values
+08-17 09:31:16.227 16637  8561 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+08-17 09:31:16.228 16637  8561 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+08-17 09:31:16.228 16637  8561 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+08-17 09:31:16.228 16637  8561 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+08-17 09:31:16.229 16637  8561 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+08-17 09:31:16.231 16637 16637 D InsetsController: show(ime(), fromIme=false)
+08-17 09:31:16.231 16637 16637 I ImeTracker: com.termux:92980ad8: onCancelled at PHASE_CLIENT_REPORT_REQUESTED_VISIBLE_TYPES
+08-17 09:31:16.232 16637  8561 I CCodecConfig: query failed after returning 8 values (BAD_INDEX)
+08-17 09:31:16.236 16637  8559 E MediaCodec: Media Quality Service not found.
+08-17 09:31:16.237 16637  8561 W AString : ctor got NULL, using empty string instead
+08-17 09:31:16.240 16637  8561 W Codec2Client: query -- param skipped: index = 1107298332.
+08-17 09:31:16.241 16637  8561 I CCodecConfig: query failed after returning 8 values (BAD_INDEX)
+08-17 09:31:16.241 16637  8561 E com.termux: Failed to query component interface for required system resources: 6
+08-17 09:31:16.242 16637  8561 W Codec2Client: query -- param skipped: index = 1342179345.
+08-17 09:31:16.242 16637  8561 W Codec2Client: query -- param skipped: index = 2415921170.
+08-17 09:31:16.247 16637  8561 D CCodecBuffers: [c2.android.vorbis.decoder#749:1D-Output.Impl[N]] converted 0 buffers to array mode of 4
+08-17 09:31:16.277 16637  8559 D SoundPool::Sound: begin to decode(fd=155)
+08-17 09:31:16.278 16637  8561 D CCodecBuffers: [c2.android.vorbis.decoder#749:1D-Input.Impl[N]] converted 4 buffers to array mode of 4
+08-17 09:31:16.290 16637 16637 W VRI[TermuxActivity]: handleResized abandoned!
+08-17 09:31:16.317 16637 16637 W VRI[TermuxActivity]: handleResized abandoned!
+08-17 09:31:16.334 16637  8559 D SoundPool::Sound: end to decode (fd=155)
+08-17 09:31:16.335 16637  8561 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+08-17 09:31:16.337 16637  8559 D AtlasEventUploadUtils: setEvent event:atlas_event_video_monitor_network_switch
+08-17 09:31:16.364 16637 16637 I ImeTracker: system_server:e0b29c28: onShown
+08-17 09:31:17.231 16637 16651 D OplusScrollToTopManager: com.termux/com.termux.app.TermuxActivity,This com.android.internal.policy.DecorView{7823af4 V.E...... R....... 0,0-1080,2400 alpha=1.0 viewInfo = }[TermuxActivity] change focus to true
+08-17 09:31:17.505 16637 16637 E IJankManager: slideSceneEnd unknown scene 1000 mScene:-1
+08-17 09:31:17.583 16637 16637 D OplusViewDragTouchViewHelper: dispatchTouchView action = 1
+08-17 09:31:17.583 16637 16637 D ViewRootImplExtImpl: the up motion event handled by client, just return
+08-17 09:31:17.866 16637 16637 E IJankManager: slideSceneEnd unknown scene 1000 mScene:-1
+08-17 09:31:18.356 16637 16637 E IJankManager: slideSceneEnd unknown scene 1000 mScene:-1
+08-17 09:31:18.755 16637 16637 D WindowManager: Add to mViews: android.widget.PopupWindow$PopupDecorView{d82eaf1 V.E...... R.....I. 0,0-0,0 alpha=1.0 viewInfo = },pkg= com.termux
+08-17 09:31:18.756 16637 16657 D skia    : setRusSupported enable 0
+08-17 09:31:18.771 16637 16637 D ViewRootImplExtImpl: onDisplayChanged -1 for VRI android.view.ViewRootImpl@ca4044
+08-17 09:31:18.772 16637 16637 D WindowManager: Add to mViews: android.widget.PopupWindow$PopupDecorView{e6987f3 V.E...... R.....I. 0,0-0,0 alpha=1.0 viewInfo = },pkg= com.termux
+08-17 09:31:18.773 16637 16657 D skia    : setRusSupported enable 0
+08-17 09:31:18.786 16637 16637 D ViewRootImplExtImpl: onDisplayChanged -1 for VRI android.view.ViewRootImpl@91ebaae
+08-17 09:31:18.799 16637 16637 E LocalFloatingToolbarPopupExtImpl: 
+08-17 09:31:18.801 16637 16637 E LocalFloatingToolbarPopupExtImpl: 
+08-17 09:31:18.802 16637 16637 E LocalFloatingToolbarPopupExtImpl: 
+08-17 09:31:18.804 16637 16637 D WindowManager: Add to mViews: android.widget.PopupWindow$PopupDecorView{e360ad4 V.E...... R.....I. 0,0-0,0 alpha=1.0 viewInfo = },pkg= com.termux
+08-17 09:31:18.804 16637 16657 D skia    : setRusSupported enable 0
+08-17 09:31:18.814 16637 16637 D ViewRootImplExtImpl: onDisplayChanged -1 for VRI android.view.ViewRootImpl@cb17fc3
+08-17 09:31:18.816 16637 16637 E OplusBracketLog: [OplusViewMirrorManager] updateHostViewRootIfNeeded, not support android.view.ViewRootImpl@ca4044
+08-17 09:31:18.817 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:18.817 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:18.817 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:18.829 16637 16637 D BufferQueueConsumer: [](id:40fd0000018a,api:0,p:-1,c:16637) connect: controlledByApp=false
+08-17 09:31:18.829 16637 16637 D BufferQueueConsumer: [VRI[PopupWindow:c95047b]#394(BLAST Consumer)394](id:40fd0000018a,api:0,p:-1,c:16637) setMaxAcquiredBufferCount: 2
+08-17 09:31:18.832 16637 16657 D HWUI    : createSurface new attribs array
+08-17 09:31:18.832 16637 16657 D libEGL  : this is from skia gles
+08-17 09:31:18.834 16637 16637 I SurfaceControl:  setExtendedRangeBrightness sc=Surface(name=PopupWindow:c95047b)/@0x6a1243b,currentBufferRatio=1.0,desiredRatio=1.0
+08-17 09:31:18.838 16637 16657 D BLASTBufferQueue: [VRI[PopupWindow:c95047b]#394](f:0,a:1) acquireNextBufferLocked size=144x72 mFrameNumber=1 applyTransaction=true mTimestamp=44618754804659(auto) mPendingTransactions.size=0 graphicBufferId=71455370905128 transform=0
+08-17 09:31:18.839 16637 16657 D VRI[PopupWindow:c95047b]: Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true syncBuffer=false
+08-17 09:31:18.839 16637 16637 D VRI[PopupWindow:c95047b]: draw finished. seqId=0
+08-17 09:31:18.839 16637 16637 E OplusBracketLog: [OplusViewMirrorManager] updateHostViewRootIfNeeded, not support android.view.ViewRootImpl@91ebaae
+08-17 09:31:18.839 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:18.839 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:18.840 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:18.854 16637 16637 D BufferQueueConsumer: [](id:40fd0000018b,api:0,p:-1,c:16637) connect: controlledByApp=false
+08-17 09:31:18.855 16637 16637 D BufferQueueConsumer: [VRI[PopupWindow:e4a452d]#395(BLAST Consumer)395](id:40fd0000018b,api:0,p:-1,c:16637) setMaxAcquiredBufferCount: 2
+08-17 09:31:18.859 16637 16657 D HWUI    : createSurface new attribs array
+08-17 09:31:18.859 16637 16657 D libEGL  : this is from skia gles
+08-17 09:31:18.860 16637 16637 I SurfaceControl:  setExtendedRangeBrightness sc=Surface(name=PopupWindow:e4a452d)/@0x261dfb3,currentBufferRatio=1.0,desiredRatio=1.0
+08-17 09:31:18.864 16637 16657 D BLASTBufferQueue: [VRI[PopupWindow:e4a452d]#395](f:0,a:1) acquireNextBufferLocked size=144x72 mFrameNumber=1 applyTransaction=true mTimestamp=44618780358582(auto) mPendingTransactions.size=0 graphicBufferId=71455370905132 transform=0
+08-17 09:31:18.864 16637 16657 D VRI[PopupWindow:e4a452d]: Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true syncBuffer=false
+08-17 09:31:18.864 16637 16637 D VRI[PopupWindow:e4a452d]: draw finished. seqId=0
+08-17 09:31:18.877 16637 16637 E OplusBracketLog: [OplusViewMirrorManager] updateHostViewRootIfNeeded, not support android.view.ViewRootImpl@cb17fc3
+08-17 09:31:18.877 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:18.877 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:18.877 16637 16637 D OplusPredictiveBackController: should not HookOnBackInvokedCallbackEnabled for application com.termux.app.TermuxActivity@8f365f1 hasOnBackInvokedCallBackEnabled
+08-17 09:31:18.890 16637 16637 D BufferQueueConsumer: [](id:40fd0000018c,api:0,p:-1,c:16637) connect: controlledByApp=false
+08-17 09:31:18.891 16637 16637 D BufferQueueConsumer: [VRI[PopupWindow:dbe2ae6]#396(BLAST Consumer)396](id:40fd0000018c,api:0,p:-1,c:16637) setMaxAcquiredBufferCount: 2
+08-17 09:31:18.893 16637 16657 D HWUI    : createSurface new attribs array
+08-17 09:31:18.893 16637 16657 D libEGL  : this is from skia gles
+08-17 09:31:18.895 16637 16637 I SurfaceControl:  setExtendedRangeBrightness sc=Surface(name=PopupWindow:dbe2ae6)/@0x81f922b,currentBufferRatio=1.0,desiredRatio=1.0
+08-17 09:31:18.898 16637 16657 D BLASTBufferQueue: [VRI[PopupWindow:dbe2ae6]#396](f:0,a:1) acquireNextBufferLocked size=1022x612 mFrameNumber=1 applyTransaction=true mTimestamp=44618814689043(auto) mPendingTransactions.size=0 graphicBufferId=71455370905136 transform=0
+08-17 09:31:18.898 16637 16657 D VRI[PopupWindow:dbe2ae6]: Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true syncBuffer=false
+08-17 09:31:18.898 16637 16637 D VRI[PopupWindow:dbe2ae6]: draw finished. seqId=0
+08-17 09:31:18.900 16637 16637 D OplusViewDragTouchViewHelper: dispatchTouchView action = 1
+08-17 09:31:18.900 16637 16637 D ViewRootImplExtImpl: the up motion event handled by client, just return
+08-17 09:31:18.902 16637 16637 I SurfaceControl:  setExtendedRangeBrightness sc=Surface(name=PopupWindow:c95047b)/@0x6a1243b,currentBufferRatio=1.0,desiredRatio=1.0
+08-17 09:31:18.904 16637 16657 D VRI[PopupWindow:c95047b]: Received frameCommittedCallback lastAttemptedDrawFrameNum=2 didProduceBuffer=true syncBuffer=false
+08-17 09:31:18.904 16637 16637 D VRI[PopupWindow:c95047b]: draw finished. seqId=0
+08-17 09:31:18.914 16637 16637 I SurfaceControl:  setExtendedRangeBrightness sc=Surface(name=PopupWindow:e4a452d)/@0x261dfb3,currentBufferRatio=1.0,desiredRatio=1.0
+08-17 09:31:18.916 16637 16657 D VRI[PopupWindow:e4a452d]: Received frameCommittedCallback lastAttemptedDrawFrameNum=2 didProduceBuffer=true syncBuffer=false
+08-17 09:31:18.916 16637 16637 D VRI[PopupWindow:e4a452d]: draw finished. seqId=0
+08-17 09:31:19.118 16637 16637 D OplusScrollToTopManager: PopupWindow:dbe2ae6,is not FullScreenRoot : window is sub type
+08-17 09:31:19.203 16637 16637 I SurfaceControl:  setExtendedRangeBrightness sc=Surface(name=PopupWindow:dbe2ae6)/@0x81f922b,currentBufferRatio=1.0,desiredRatio=1.0
+08-17 09:31:19.419 16637 16637 D OplusScrollToTopManager: PopupWindow:dbe2ae6,is not FullScreenRoot : window is sub type
+08-17 09:31:19.759 16637 16637 E IJankManager: slideSceneEnd unknown scene 1000 mScene:-1
+08-17 09:31:19.840 16637 16637 D OplusViewDragTouchViewHelper: dispatchTouchView action = 1
+08-17 09:31:19.840 16637 16637 D ViewRootImplExtImpl: the up motion event handled by client, just return
+08-17 09:31:19.841 16637 16637 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.widget.PopupWindow$PopupDecorView$$ExternalSyntheticLambda1@522551f
+08-17 09:31:19.841 16637 16637 D OplusScrollToTopManager: PopupWindow:c95047b,window dying
+08-17 09:31:19.841 16637 16637 D OplusScrollToTopManager: PopupWindow:c95047b,unregisterSystemUIBroadcastReceiver 
+08-17 09:31:19.841 16637 16637 D OplusScrollToTopManager: PopupWindow:c95047b, unregisterSystemUIBroadcastReceiver failed java.lang.IllegalArgumentException: Receiver not registered: android.view.OplusScrollToTopManager$2@15edfcd
+08-17 09:31:19.842 16637 16637 D HWUI    : RenderProxy::destroy: this=0xb4000075889a9d00, mContext=0xb400007512302640
+08-17 09:31:19.842 16637 16657 D HWUI    : SkiaOpenGLPipeline::setSurface: this=0xb40000758f250dc0, surface=NULL
+08-17 09:31:19.842 16637 16637 D BLASTBufferQueue: [VRI[PopupWindow:c95047b]#394](f:0,a:2) destructor()
+08-17 09:31:19.843 16637 16637 D BufferQueueConsumer: [VRI[PopupWindow:c95047b]#394(BLAST Consumer)394](id:40fd0000018a,api:0,p:-1,c:16637) disconnect
+08-17 09:31:19.848 16637 16637 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=false callback=android.widget.PopupWindow$PopupDecorView$$ExternalSyntheticLambda1@b73c917
+08-17 09:31:19.848 16637 16637 D OplusScrollToTopManager: PopupWindow:e4a452d,window dying
+08-17 09:31:19.848 16637 16637 D OplusScrollToTopManager: PopupWindow:e4a452d,unregisterSystemUIBroadcastReceiver 
+08-17 09:31:19.848 16637 16637 D OplusScrollToTopManager: PopupWindow:e4a452d, unregisterSystemUIBroadcastReceiver failed java.lang.IllegalArgumentException: Receiver not registered: android.view.OplusScrollToTopManager$2@323f082
+08-17 09:31:19.849 16637 16637 D HWUI    : RenderProxy::destroy: this=0xb40000752af5cc00, mContext=0xb400007512319080
+08-17 09:31:19.849 16637 16657 D HWUI    : SkiaOpenGLPipeline::setSurface: this=0xb40000758f250f00, surface=NULL
+08-17 09:31:19.850 16637 16637 D BLASTBufferQueue: [VRI[PopupWindow:e4a452d]#395](f:0,a:2) destructor()
+08-17 09:31:19.850 16637 16637 D BufferQueueConsumer: [VRI[PopupWindow:e4a452d]#395(BLAST Consumer)395](id:40fd0000018b,api:0,p:-1,c:16637) disconnect
+08-17 09:31:20.115 16637 16637 E IJankManager: slideSceneEnd unknown scene 1000 mScene:-1
+08-17 09:31:20.114  8606  8606 W linker64: type=1400 audit(0.0:152140): avc:  granted  { execute } for  name="logcat" dev="dm-73" ino=977248 scontext=u:r:untrusted_app:s0:c212,c257,c512,c768 tcontext=u:object_r:app_data_file:s0:c212,c257,c512,c768 tclass=file app=com.termux
+08-17 09:31:20.118  8606  8606 W linker64: type=1400 audit(0.0:152141): avc:  granted  { execute } for  path="/data/data/com.termux/files/usr/bin/dash" dev="dm-73" ino=976981 scontext=u:r:untrusted_app:s0:c212,c257,c512,c768 tcontext=u:object_r:app_data_file:s0:c212,c257,c512,c768 tclass=file app=com.termux
+08-17 09:31:20.126  8606  8606 W linker64: type=1400 audit(0.0:152142): avc:  granted  { execute } for  path="/data/data/com.termux/files/usr/lib/libtermux-exec.so" dev="dm-73" ino=979067 scontext=u:r:untrusted_app:s0:c212,c257,c512,c768 tcontext=u:object_r:app_data_file:s0:c212,c257,c512,c768 tclass=file app=com.termux

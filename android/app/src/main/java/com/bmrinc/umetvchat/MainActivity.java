@@ -1,4 +1,4 @@
-package com.umetv.bmrinc;
+package com.bmrinc.umetvchat;
 
 import com.getcapacitor.BridgeActivity;
 
