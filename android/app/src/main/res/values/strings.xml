@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">UmeTV</string>
+    <string name="title_activity_main">UmeTV</string>
+    <string name="package_name">com.umetv.bmrinc</string>
+    <string name="custom_url_scheme">com.umetv.bmrinc</string>
+</resources>
