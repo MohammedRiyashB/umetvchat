@@ -1,5 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useLocation } from 'react-router-dom';
 
 interface SEOProps {
   title?: string;
@@ -8,12 +9,20 @@ interface SEOProps {
   image?: string;
 }
 
-export default function SEO({ 
-  title = "UmeTV - Random Video & Text Chat",
-  description = "UmeTV is the premier random video and text chat platform. Connect instantly with strangers worldwide safely and securely.",
-  url = "https://umetvchat.web.app/",
-  image = "https://umetvchat.web.app/icon.png"
+export default function SEO({
+  title = 'UmeTV - Random Video & Text Chat',
+  description = 'UmeTV is the premier random video and text chat platform. Connect instantly with strangers worldwide safely and securely.',
+  url = 'https://umetvchat.web.app/',
+  image = 'https://umetvchat.web.app/icon.png',
 }: SEOProps) {
+  const location = useLocation();
+
+  // Homepage metadata is provided by Vite's index.html.
+  // Prevent React Helmet from creating duplicate homepage metadata.
+  if (location.pathname === '/') {
+    return null;
+  }
+
   return (
     <Helmet>
       <title>{title}</title>
@@ -23,11 +32,11 @@ export default function SEO({
       <meta property="og:url" content={url} />
       <meta property="og:image" content={image} />
       <meta property="og:type" content="website" />
-      <meta property="twitter:card" content="summary_large_image" />
-      <meta property="twitter:title" content={title} />
-      <meta property="twitter:description" content={description} />
-      <meta property="twitter:url" content={url} />
-      <meta property="twitter:image" content={image} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
+      <meta name="twitter:url" content={url} />
+      <meta name="twitter:image" content={image} />
       <link rel="canonical" href={url} />
     </Helmet>
   );

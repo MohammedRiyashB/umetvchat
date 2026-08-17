@@ -6,10 +6,10 @@ import Banner300x250Ad from './ads/Banner300x250Ad';
 import NativeBannerAd from './ads/NativeBannerAd';
 import SEO from './SEO';
 
-import { 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signInAnonymously,
   onAuthStateChanged,
   signOut,
@@ -41,7 +41,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     gender: '',
     interests: [] as string[]
   });
-  
+
   const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
@@ -210,13 +210,13 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
         const res = await fetch(`${import.meta.env.VITE_SOCKET_URL || ''}/api/online_users`);
         const data = await res.json();
         if (data.count !== undefined) {
-          setOnlineCount(data.count); 
+          setOnlineCount(data.count);
         }
       } catch (e) {
         // Silently fail if endpoint is not reachable
       }
     };
-    
+
     fetchCount();
     const interval = setInterval(fetchCount, 5000);
     return () => clearInterval(interval);
@@ -227,7 +227,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
 
   const handleStartChatting = () => {
     if (isStartingChat) return;
-    
+
     setIsStartingChat(true);
     // Show interstitial ad before starting chat
     setShowInterstitial(true);
@@ -244,13 +244,40 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
 
       {/* Header */}
       <header className="px-4 sm:px-6 py-1.5 sm:py-2 bg-white border-b border-slate-200 flex justify-between items-center sticky top-0 z-40 shadow-sm">
-        <h1 className="flex items-center gap-2 cursor-pointer" onClick={() => { window.open('https://www.effectivecpmnetwork.com/vjz9xam93?key=e92738b1a6e698a33e71bf7b5bf846bf', '_blank'); onNavigate('home'); }}>
-          <img src="/icon.png" alt="Ume Tv Logo" width="102" height="72" className="h-10 sm:h-12 w-auto object-contain drop-shadow-sm" onError={(e) => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextElementSibling) { (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'; } }} />
-          <div style={{ display: 'none' }} className="items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-slate-800">
-             <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 text-sky-500" />
-             Ume Tv
+        <header className="flex items-center">
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => {
+              window.open('https://www.effectivecpmnetwork.com/vjz9xam93?key=e92738b1a6e698a33e71bf7b5bf846bf', '_blank');
+              onNavigate('home');
+            }}
+          >
+            <img
+              src="/icon.png"
+              alt="UmeTVChat logo"
+              width="102"
+              height="72"
+              className="h-10 sm:h-12 w-auto object-contain drop-shadow-sm"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                if (e.currentTarget.nextElementSibling) {
+                  (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
+                }
+              }}
+            />
+            <div
+              style={{ display: 'none' }}
+              className="items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-slate-800"
+            >
+              <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 text-sky-500" />
+              UmeTVChat
+            </div>
           </div>
-        </h1>
+
+          <h1 className="ml-3 text-base sm:text-lg font-black tracking-tight text-slate-800">
+            UmeTVChat — Random Video Chat
+          </h1>
+        </header>
         <div className="flex items-center gap-3">
           {isLoggedIn ? (
             <div className="flex items-center gap-2">
@@ -269,7 +296,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
               </button>
             </div>
           ) : (
-            <button 
+            <button
               onClick={() => setShowAuth(true)}
               className="text-sm font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 px-4 py-2 rounded-full border border-sky-200 transition-colors"
             >
@@ -303,9 +330,9 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
           <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
             <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="text-xl font-black text-slate-800">
-                Welcome to Ume Tv
+                Welcome to UmeTVChat
               </h3>
-              <button 
+              <button
                 onClick={() => setShowAuth(false)}
                 className="text-slate-400 hover:text-slate-600 transition-colors p-1"
               >
@@ -318,7 +345,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                   {authError}
                 </div>
               )}
-              
+
               <button onClick={handleGoogleLogin} className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition-colors flex items-center justify-center gap-3">
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -328,11 +355,11 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                 </svg>
                 Continue with Google
               </button>
-              
+
               <button onClick={handleGuestLogin} className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">
                 Continue as Guest
               </button>
-              
+
               <div className="flex items-center gap-2 my-2">
                 <div className="flex-1 h-px bg-slate-200"></div>
                 <div className="text-sm font-semibold text-slate-400">OR</div>
@@ -340,21 +367,21 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
               </div>
 
               <div className="flex flex-col gap-3">
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email" 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
+                  placeholder="Email"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
                 />
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password" 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
+                  placeholder="Password"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
                 />
-                
+
                 <div className="flex justify-end">
                   <button onClick={() => setShowForgotPassword(true)} className="text-sm font-bold text-sky-500 hover:text-sky-600 transition-colors">
                     Forgot password? Reset
@@ -378,7 +405,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
               <h3 className="text-xl font-black text-slate-800">
                 Reset Password
               </h3>
-              <button 
+              <button
                 onClick={() => { setShowForgotPassword(false); setResetMessage(""); }}
                 className="text-slate-400 hover:text-slate-600 transition-colors p-1"
               >
@@ -391,12 +418,12 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                   {resetMessage}
                 </div>
               )}
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
-                placeholder="Enter your email" 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
+                placeholder="Enter your email"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
               />
               <button onClick={handlePasswordReset} className="w-full py-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-bold text-lg transition-all shadow-md mt-2">
                 Send Reset Link
@@ -422,27 +449,27 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                   {authError}
                 </div>
               )}
-              
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-bold text-slate-700">Name <span className="text-red-500">*</span></label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={profileData.name}
                   onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                  
-                  placeholder="Your Name" 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
+
+                  placeholder="Your Name"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-bold text-slate-700">Date of Birth <span className="text-red-500">*</span></label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   value={profileData.age}
                   onChange={(e) => setProfileData({...profileData, age: e.target.value})}
-                  
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
+
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all"
                 />
               </div>
 
@@ -464,7 +491,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                 <label className="text-sm font-bold text-slate-700">Interests (Tags)</label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {['Music', 'Gaming', 'Football', 'Anime', 'Technology', 'Movies', 'Sports'].map(tag => (
-                    <button 
+                    <button
                       key={tag}
                       onClick={() => {
                         if (profileData.interests.includes(tag)) {
@@ -492,7 +519,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
       {showProfile && !showProfileSetup && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col relative">
-            <button 
+            <button
                 onClick={() => {
                   setShowProfile(false);
                   handleLogout();
@@ -501,7 +528,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
               >
                 <LogOut className="w-5 h-5 text-red-500 group-hover:text-red-600" />
             </button>
-            <button 
+            <button
                 onClick={() => setShowProfile(false)}
                 className="absolute top-4 right-4 bg-white/50 hover:bg-slate-100 rounded-full p-2 transition-colors z-10"
               >
@@ -516,9 +543,9 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                  </div>
                )}
                <h3 className="text-2xl font-black text-slate-800">{profileData.name || 'Anonymous User'}</h3>
-               
+
             </div>
-            
+
             <div className="px-8 pb-8 pt-2 flex flex-col gap-4">
                <div className="flex justify-between items-center py-3 border-b border-slate-100">
                  <span className="text-sm font-bold text-slate-400">Gender</span>
@@ -528,7 +555,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                  <span className="text-sm font-bold text-slate-400">Date of Birth</span>
                  <span className="text-sm font-bold text-slate-700">{profileData.age || '-'}</span>
                </div>
-               
+
                <div className="flex flex-col gap-2 py-3">
                  <span className="text-sm font-bold text-slate-400">Interests</span>
                  <div className="flex flex-wrap gap-2">
@@ -537,8 +564,8 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                    )) : <span className="text-sm font-medium text-slate-500">No interests selected</span>}
                  </div>
                </div>
-               
-               <button 
+
+               <button
                  onClick={() => { setShowProfile(false); setShowProfileSetup(true); }}
                  className="w-full mt-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors"
                >
@@ -558,9 +585,9 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
             Ready to meet <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-indigo-500">someone new?</span>
           </h2>
-          
+
           <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mb-10 leading-relaxed font-medium px-4">
-            Ume Tv makes it easy to chat with strangers in random video or text chats. It's simple, fast, and time to start mingling!
+            UmeTVChat makes it easy to chat with strangers in random video or text chats. It's simple, fast, and time to start mingling!
           </p>
 
           <div className="text-xl sm:text-2xl font-bold text-sky-600 mb-6 flex items-center justify-center gap-3 animate-pulse">
@@ -580,7 +607,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
               Chats are moderated. Please keep it respectful
             </div>
           </div>
-          
+
           <div className="w-full max-w-4xl mx-auto mt-12 bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider text-left mb-2">Advertisement</p>
             <NativeBannerAd />
@@ -597,7 +624,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
               <h3 className="text-xl font-bold text-slate-900 mb-3">Interest-Based Matching</h3>
               <p className="text-slate-600 font-medium leading-relaxed">Connect with people who share your passions and hobbies instantly.</p>
             </div>
-            
+
             <div className="flex flex-col items-center text-center">
               <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mb-6 shadow-sm border border-emerald-100 transform rotate-3 hover:rotate-0 transition-transform">
                 <Shield className="w-10 h-10" />
@@ -628,21 +655,21 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
         <section className="w-full max-w-3xl mx-auto px-6 py-20 sm:py-28">
           <h2 className="text-3xl sm:text-4xl font-black text-center text-slate-900 mb-12">Frequently Asked Questions</h2>
           <div className="flex flex-col gap-4">
-            <FaqItem 
-              question="How does interest matching work?" 
+            <FaqItem
+              question="How does interest matching work?"
               answer="Simply type in a few keywords about things you like. We'll prioritize connecting you with someone who has typed similar interests. If no match is found quickly, we'll connect you with a random friendly stranger."
             />
-            <FaqItem 
-              question="How does Ume Tv help keep chats safer?" 
+            <FaqItem
+              question="How does UmeTVChat help keep chats safer?"
               answer="We provide easy in-app reporting tools so you can flag bad actors instantly, keeping the community safe."
             />
-            <FaqItem 
-              question="Why choose Ume Tv to chat with strangers online?" 
-              answer="Ume Tv offers a modern, blazing-fast, and secure platform. Unlike older alternatives, we focus heavily on UI/UX, video quality, and active community moderation to ensure a positive experience."
+            <FaqItem
+              question="Why choose UmeTVChat to chat with strangers online?"
+              answer="UmeTVChat offers a modern, blazing-fast, and secure platform. Unlike older alternatives, we focus heavily on UI/UX, video quality, and active community moderation to ensure a positive experience."
             />
-            <FaqItem 
-              question="Can I use Ume Tv on my phone?" 
-              answer="Absolutely! Ume Tv is fully responsive and works perfectly on your mobile browser, complete with camera and microphone support."
+            <FaqItem
+              question="Can I use UmeTVChat on my phone?"
+              answer="Absolutely! UmeTVChat is fully responsive and works perfectly on your mobile browser, complete with camera and microphone support."
             />
           </div>
         </section>
@@ -656,10 +683,10 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
             <div className="cursor-pointer" onClick={() => { window.open('https://www.effectivecpmnetwork.com/vjz9xam93?key=e92738b1a6e698a33e71bf7b5bf846bf', '_blank'); onNavigate('home'); }}>
-              <img src="/icon.png" alt="Ume Tv Logo" width="102" height="72" className="h-20 md:h-24 w-auto object-contain drop-shadow-sm" onError={(e) => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextElementSibling) { (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'; } }} />
+              <img src="/icon.png" alt="UmeTVChat logo" width="102" height="72" className="h-20 md:h-24 w-auto object-contain drop-shadow-sm" onError={(e) => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextElementSibling) { (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'; } }} />
               <div style={{ display: 'none' }} className="items-center gap-2 text-white font-bold text-2xl tracking-tight">
                 <MessageCircle className="w-7 h-7 text-sky-500" />
-                Ume Tv
+                UmeTVChat
               </div>
             </div>
             <div className="text-sm font-medium text-center md:text-left">
@@ -683,7 +710,7 @@ function FaqItem({ question, answer }: { question: string, answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-6 py-5 text-left font-bold text-slate-800 flex justify-between items-center focus:outline-none focus:bg-slate-50"
       >
@@ -692,7 +719,7 @@ function FaqItem({ question, answer }: { question: string, answer: string }) {
           ▼
         </div>
       </button>
-      <div 
+      <div
         className={`px-6 text-slate-600 font-medium leading-relaxed border-t border-slate-100 transition-all duration-300 overflow-hidden ${isOpen ? 'py-5 opacity-100 max-h-96' : 'max-h-0 opacity-0 border-t-0'}`}
       >
         {answer}
