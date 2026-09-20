@@ -1,6 +1,7 @@
 import { auth } from "./firebase";
 
-const apiBase = import.meta.env.VITE_SOCKET_URL || "";
+const configuredApiBase = typeof import.meta.env.VITE_SOCKET_URL === "string" ? import.meta.env.VITE_SOCKET_URL.trim() : "";
+const apiBase = configuredApiBase || (import.meta.env.DEV ? window.location.origin : "https://umetvchat.onrender.com");
 
 export async function apiFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
