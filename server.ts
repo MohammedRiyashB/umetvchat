@@ -177,19 +177,6 @@ async function startServer() {
     isValidWebRtcPayload(value) &&
     isPlainObject(value.candidate);
 
-  const calculateAge = (dobValue: string): number | null => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dobValue)) return null;
-    const dob = new Date(`${dobValue}T00:00:00.000Z`);
-    if (Number.isNaN(dob.getTime()) || dob.toISOString().slice(0, 10) !== dobValue) return null;
-
-    const now = new Date();
-    let age = now.getUTCFullYear() - dob.getUTCFullYear();
-    const birthdayPassed =
-      now.getUTCMonth() > dob.getUTCMonth() ||
-      (now.getUTCMonth() === dob.getUTCMonth() && now.getUTCDate() >= dob.getUTCDate());
-    if (!birthdayPassed) age -= 1;
-    return age;
-  };
   interface UserInQueue {
     userId: string;
     profile: UserProfile | null;
@@ -427,20 +414,10 @@ async function startServer() {
         profile = { age: "1990-01-01", interests: [] };
       }
 
-      if (!profile || typeof profile.age !== "string" || !profile.age) {
-          socket.emit("game_error", { message: "Profile with valid Date of Birth is required." });
-          return;
-      }
-      
-      const age = calculateAge(profile.age);
-      if (age === null) {
-          socket.emit("game_error", { message: "Invalid Date of Birth format. Use YYYY-MM-DD." });
-          return;
-      }
-      
-      if (age < 18) {
-          socket.emit("game_error", { message: "You must be at least 18 years old." });
-          return;
+      // Guest chat is intentionally profile-free: no DOB, age, or profile document is required.
+      // Anonymous Firebase authentication provides the identity needed for realtime matchmaking.
+      if (!profile) {
+        profile = { interests: [] };
       }
 
       cleanupGame(myUid); 
