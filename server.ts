@@ -404,12 +404,6 @@ async function startServer() {
       // This avoids requiring a Firestore document/database just to enter the anonymous queue.
       let profile: UserProfile = { interests: [] };
 
-      // Guest chat is intentionally profile-free: no DOB, age, or profile document is required.
-      // Anonymous Firebase authentication provides the identity needed for realtime matchmaking.
-      if (!profile) {
-        profile = { interests: [] };
-      }
-
       cleanupGame(myUid); 
       const currentPartnerId = await getMatchedUser(myUid);
       if (currentPartnerId) {
