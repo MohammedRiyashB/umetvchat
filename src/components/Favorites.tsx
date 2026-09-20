@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, Heart, UserRound } from "lucide-react";
+import { ArrowLeft, Heart, UserRound, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SEO from "./SEO";
 import { apiFetch } from "../lib/api";
@@ -30,6 +30,15 @@ export default function Favorites() {
     return () => { active = false; };
   }, []);
 
+  const removeFavorite = async (uid: string) => {
+    try {
+      await apiFetch("/api/me/favorites/" + encodeURIComponent(uid), { method: "DELETE" });
+      setFavorites(prev => prev.filter(item => item.uid !== uid));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove favorite");
+    }
+  };
+
   return (
     <div className="min-h-[100dvh] bg-slate-50 text-slate-900">
       <SEO title="UmeTV Favorites" description="Your saved UmeTV chat connections." url="https://umetvchat.web.app/favorites" />
@@ -47,7 +56,9 @@ export default function Favorites() {
             <div key={favorite.uid} className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center"><UserRound className="w-6 h-6" /></div>
               <div className="flex-1"><div className="font-black">{favorite.name}</div><div className="text-xs text-slate-400">Saved connection</div></div>
-              <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
+              <button onClick={() => void removeFavorite(favorite.uid)} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-red-500" title="Remove favorite">
+                <X className="w-5 h-5" />
+              </button>
             </div>
           ))}
           {!favorites.length && !error && <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">No favorites yet. Star a stranger during a chat to save them.</div>}
