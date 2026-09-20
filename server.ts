@@ -400,19 +400,9 @@ async function startServer() {
       console.log("[MATCHMAKING] join_queue received:", myUid);
       if (await checkRateLimit(myUid, 'join_queue', 5)) return;
 
-      let profile: UserProfile | null = null;
-      if (firebaseAdminInitialized) {
-        try {
-          const docSnap = await getFirestore().collection("users").doc(myUid).get();
-          if (docSnap.exists) {
-            profile = docSnap.data() as UserProfile;
-          }
-        } catch (error) {
-          console.error("[PROFILE] Firestore lookup failed:", error);
-        }
-      } else if (process.env.NODE_ENV !== "production" && process.env.ALLOW_MOCK_AUTH === "true") {
-        profile = { age: "1990-01-01", interests: [] };
-      }
+      // Guest matchmaking is profile-free. Do not query Firestore for a user profile here.
+      // This avoids requiring a Firestore document/database just to enter the anonymous queue.
+      let profile: UserProfile = { interests: [] };
 
       // Guest chat is intentionally profile-free: no DOB, age, or profile document is required.
       // Anonymous Firebase authentication provides the identity needed for realtime matchmaking.
