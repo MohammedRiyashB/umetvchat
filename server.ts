@@ -3,8 +3,6 @@ import express from "express";
 import cors from "cors";
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
-import { createAdapter } from "@socket.io/redis-adapter";
-import { createClient } from "redis";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { Chess } from "chess.js";
@@ -109,53 +107,6 @@ async function startServer() {
     }
   });
 
-  // Redis is the shared realtime backbone for multi-instance deployments.
-  // Render Key Value is Redis-compatible Valkey and exposes a private internal URL
-  // to services in the same region.
-  const redisUrl = process.env.REDIS_URL?.trim();
-  const redisRequired = process.env.REDIS_REQUIRED_FOR_MULTI_INSTANCE === "true";
-  let redisReady = false;
-  const redisPubClient = redisUrl ? createClient({ url: redisUrl }) : null;
-  const redisSubClient = redisPubClient ? redisPubClient.duplicate() : null;
-  const redisStateClient = redisPubClient ? redisPubClient.duplicate() : null;
-  const closeRedisClients = async () => {
-    await Promise.allSettled(
-      [redisPubClient, redisSubClient, redisStateClient]
-        .filter((client): client is NonNullable<typeof redisPubClient> => Boolean(client))
-        .map(async (client) => {
-          if (client.isOpen) await client.close();
-        })
-    );
-  };
-  if (redisPubClient && redisSubClient && redisStateClient) {
-    const onRedisError = (error: unknown) => {
-      console.error("[Redis] connection error:", error instanceof Error ? error.message : error);
-    };
-    redisPubClient.on("error", onRedisError);
-    redisSubClient.on("error", onRedisError);
-    redisStateClient.on("error", onRedisError);
-    try {
-      await Promise.all([
-        redisPubClient.connect(),
-        redisSubClient.connect(),
-        redisStateClient.connect(),
-      ]);
-      io.adapter(createAdapter(redisPubClient, redisSubClient));
-      redisReady = true;
-      console.log("[Redis] connected; Socket.IO Redis adapter enabled");
-    } catch (error) {
-      console.error("[Redis] startup connection failed:", error instanceof Error ? error.message : error);
-      await closeRedisClients();
-      if (redisRequired) {
-        throw new Error("REDIS_REQUIRED_FOR_MULTI_INSTANCE is enabled but Redis is unavailable");
-      }
-    }
-  } else if (redisRequired) {
-    throw new Error("REDIS_REQUIRED_FOR_MULTI_INSTANCE is enabled but REDIS_URL is missing");
-  } else {
-    console.warn("[Redis] REDIS_URL not configured; using single-instance in-memory realtime state");
-  }
-    
   const PORT = Number(process.env.PORT) || 3000;
   const ADMIN_UIDS = new Set((process.env.ADMIN_UIDS || "").split(",").map((value) => value.trim()).filter(Boolean));
 
@@ -250,91 +201,11 @@ async function startServer() {
   const blockedUsers = new Map<string, Set<string>>();
   const disconnectTimers = new Map<string, NodeJS.Timeout>();
   const onlineUserIds = new Set<string>();
-  const REDIS_PRESENCE_COUNTS_KEY = "umetv:presence:counts";
-  const REDIS_QUEUE_ORDER_KEY = "umetv:matchmaking:queue";
-  const REDIS_QUEUE_ENTRIES_KEY = "umetv:matchmaking:entries";
-  const REDIS_MATCH_KEY_PREFIX = "umetv:match:";
-  const REDIS_MATCH_LOCK_KEY = "umetv:matchmaking:lock";
-  const REDIS_MATCH_TTL_SECONDS = 30 * 60;
-  const REDIS_MATCH_LOCK_TTL_MS = 5000;
-  const REDIS_MATCH_SCAN_LIMIT = 200;
-  interface SharedMatch { partnerId: string; sessionId: string; }
-
-  const getMatchedUser = async (uid: string): Promise<string | null> => {
-    if (redisReady && redisStateClient) {
-      try {
-        const raw = await redisStateClient.get(REDIS_MATCH_KEY_PREFIX + uid);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw) as SharedMatch;
-        if (typeof parsed.partnerId !== "string" || typeof parsed.sessionId !== "string") return null;
-        users[uid] = parsed.partnerId;
-        matchSessions.set(uid, parsed.sessionId);
-        return parsed.partnerId;
-      } catch (error) {
-        console.error("[Redis] match lookup failed:", error instanceof Error ? error.message : error);
-      }
-    }
-    return users[uid] || null;
-  };
-
-  const getMatchSessionId = async (uid: string): Promise<string | null> => {
-    if (redisReady && redisStateClient) {
-      try {
-        const raw = await redisStateClient.get(REDIS_MATCH_KEY_PREFIX + uid);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw) as SharedMatch;
-        if (typeof parsed.partnerId !== "string" || typeof parsed.sessionId !== "string") return null;
-        users[uid] = parsed.partnerId;
-        matchSessions.set(uid, parsed.sessionId);
-        return parsed.sessionId;
-      } catch (error) {
-        console.error("[Redis] match session lookup failed:", error instanceof Error ? error.message : error);
-      }
-    }
-    return matchSessions.get(uid) || null;
-  };
-
-  const clearSharedMatch = async (uid: string) => {
-    delete users[uid];
-    matchSessions.delete(uid);
-    if (redisReady && redisStateClient) {
-      try { await redisStateClient.del(REDIS_MATCH_KEY_PREFIX + uid); }
-      catch (error) { console.error("[Redis] match cleanup failed:", error instanceof Error ? error.message : error); }
-    }
-  };
-
-  const releaseMatchLock = async (token: string) => {
-    if (!redisStateClient) return;
-    try {
-      await redisStateClient.eval(
-        "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
-        { keys: [REDIS_MATCH_LOCK_KEY], arguments: [token] }
-      );
-    } catch (error) {
-      console.error("[Redis] match lock release failed:", error instanceof Error ? error.message : error);
-    }
-  };
-
-  const removeFromSharedQueue = async (uid: string) => {
-    if (!redisReady || !redisStateClient) {
-      queue = queue.filter((entry) => entry.userId !== uid);
-      return;
-    }
-    try {
-      await redisStateClient.multi()
-        .zRem(REDIS_QUEUE_ORDER_KEY, uid)
-        .hDel(REDIS_QUEUE_ENTRIES_KEY, uid)
-        .exec();
-    } catch (error) {
-      console.error("[Redis] queue removal failed:", error instanceof Error ? error.message : error);
-    }
-  };
-
-  const getSharedQueueLength = async () => {
-    if (!redisReady || !redisStateClient) return queue.length;
-    try { return Number(await redisStateClient.zCard(REDIS_QUEUE_ORDER_KEY)); }
-    catch { return queue.length; }
-  };
+  const getMatchedUser = async (uid: string): Promise<string | null> => users[uid] || null;
+  const getMatchSessionId = async (uid: string): Promise<string | null> => matchSessions.get(uid) || null;
+  const clearSharedMatch = async (uid: string) => { delete users[uid]; matchSessions.delete(uid); };
+  const removeFromSharedQueue = async (uid: string) => { queue = queue.filter((entry) => entry.userId !== uid); };
+  const getSharedQueueLength = async () => queue.length;
 
   const isBlockedPair = async (uid: string, partnerUid: string) => {
     const myBlocked = blockedUsers.get(uid);
@@ -354,110 +225,9 @@ async function startServer() {
     } catch { return false; }
   };
 
-  const acquireMatchLock = async () => {
-    if (!redisReady || !redisStateClient) return null;
-    const token = crypto.randomUUID();
-    try {
-      const acquired = await redisStateClient.set(REDIS_MATCH_LOCK_KEY, token, { NX: true, PX: REDIS_MATCH_LOCK_TTL_MS });
-      return acquired === "OK" ? token : null;
-    } catch (error) {
-      console.error("[Redis] match lock acquisition failed:", error instanceof Error ? error.message : error);
-      return null;
-    }
-  };
-
-  const enqueueSharedUser = async (entry: UserInQueue) => {
-    if (!redisReady || !redisStateClient) {
-      queue = queue.filter((item) => item.userId !== entry.userId);
-      queue.push(entry);
-      return;
-    }
-    await redisStateClient.multi()
-      .hSet(REDIS_QUEUE_ENTRIES_KEY, entry.userId, JSON.stringify(entry))
-      .zAdd(REDIS_QUEUE_ORDER_KEY, [{ score: entry.queuedAt, value: entry.userId }])
-      .exec();
-  };
-
-  const findSharedMatch = async (uid: string, profile: UserProfile) => {
-    if (!redisReady || !redisStateClient) return null;
-    const lockToken = await acquireMatchLock();
-    if (!lockToken) return null;
-    try {
-      const cutoff = Date.now() - QUEUE_ENTRY_TTL_MS;
-      await redisStateClient.zRemRangeByScore(REDIS_QUEUE_ORDER_KEY, 0, cutoff);
-      const orderedIds = await redisStateClient.zRange(REDIS_QUEUE_ORDER_KEY, 0, REDIS_MATCH_SCAN_LIMIT - 1);
-      const candidateIds = orderedIds.filter((candidateUid) => candidateUid !== uid);
-      const rawEntries = await Promise.all(candidateIds.map((candidateUid) => redisStateClient.hGet(REDIS_QUEUE_ENTRIES_KEY, candidateUid)));
-      const candidates = rawEntries.map((raw) => {
-        if (!raw) return null;
-        try { return JSON.parse(raw) as UserInQueue; } catch { return null; }
-      }).filter((entry): entry is UserInQueue => Boolean(entry));
-      let best: UserInQueue | null = null;
-      let maxOverlap = -1;
-      const myInterests = Array.isArray(profile.interests) ? profile.interests : [];
-      for (const candidate of candidates) {
-        if (await isBlockedPair(uid, candidate.userId)) continue;
-        const partnerInterests = Array.isArray(candidate.profile?.interests) ? candidate.profile.interests : [];
-        const overlap = myInterests.filter((interest) => partnerInterests.includes(interest)).length;
-        if (overlap > maxOverlap) { maxOverlap = overlap; best = candidate; }
-      }
-      if (!best) return null;
-      if (maxOverlap === 0 || myInterests.length === 0) {
-        const available = [];
-        for (const candidate of candidates) {
-          if (!(await isBlockedPair(uid, candidate.userId))) available.push(candidate);
-        }
-        if (available.length > 0) best = available[Math.floor(Math.random() * available.length)];
-      }
-      if (!best) return null;
-      const sessionId = crypto.randomUUID();
-      await redisStateClient.multi()
-        .zRem(REDIS_QUEUE_ORDER_KEY, uid, best.userId)
-        .hDel(REDIS_QUEUE_ENTRIES_KEY, uid, best.userId)
-        .set(REDIS_MATCH_KEY_PREFIX + uid, JSON.stringify({ partnerId: best.userId, sessionId } satisfies SharedMatch), { EX: REDIS_MATCH_TTL_SECONDS })
-        .set(REDIS_MATCH_KEY_PREFIX + best.userId, JSON.stringify({ partnerId: uid, sessionId } satisfies SharedMatch), { EX: REDIS_MATCH_TTL_SECONDS })
-        .exec();
-      users[uid] = best.userId;
-      users[best.userId] = uid;
-      matchSessions.set(uid, sessionId);
-      matchSessions.set(best.userId, sessionId);
-      return { partnerId: best.userId, sessionId };
-    } finally {
-      await releaseMatchLock(lockToken);
-    }
-  };
-
-  const markUserOnline = async (uid: string) => {
-    onlineUserIds.add(uid);
-    if (!redisReady || !redisStateClient) return onlineUserIds.size;
-    try {
-      await redisStateClient.hIncrBy(REDIS_PRESENCE_COUNTS_KEY, uid, 1);
-      return Number(await redisStateClient.hLen(REDIS_PRESENCE_COUNTS_KEY));
-    } catch (error) {
-      console.error("[Redis] presence add failed:", error instanceof Error ? error.message : error);
-      return onlineUserIds.size;
-    }
-  };
-  const markUserOffline = async (uid: string) => {
-    onlineUserIds.delete(uid);
-    if (!redisReady || !redisStateClient) return onlineUserIds.size;
-    try {
-      const remaining = await redisStateClient.hIncrBy(REDIS_PRESENCE_COUNTS_KEY, uid, -1);
-      if (remaining <= 0) await redisStateClient.hDel(REDIS_PRESENCE_COUNTS_KEY, uid);
-      return Number(await redisStateClient.hLen(REDIS_PRESENCE_COUNTS_KEY));
-    } catch (error) {
-      console.error("[Redis] presence remove failed:", error instanceof Error ? error.message : error);
-      return onlineUserIds.size;
-    }
-  };
-  const getOnlineUserCount = async () => {
-    if (!redisReady || !redisStateClient) return onlineUserIds.size;
-    try {
-      return Number(await redisStateClient.hLen(REDIS_PRESENCE_COUNTS_KEY));
-    } catch {
-      return onlineUserIds.size;
-    }
-  };
+  const markUserOnline = async (uid: string) => { onlineUserIds.add(uid); return onlineUserIds.size; };
+  const markUserOffline = async (uid: string) => { onlineUserIds.delete(uid); return onlineUserIds.size; };
+  const getOnlineUserCount = async () => onlineUserIds.size;
   const metrics = {
     matches: 0,
     messages: 0,
@@ -488,36 +258,16 @@ async function startServer() {
   const games: Record<string, GameSession> = {}; // gameId -> GameSession
   const userGames: Record<string, string> = {}; // userId -> gameId
 
-  // Redis now provides shared matchmaking, match sessions, presence, and rate limits. Active games remain process-local until the game-state migration phase.
+  // Single-instance deployment: realtime rate limits stay in memory.
   const globalRateLimits = new Map<string, { count: number, lastReset: number }>();
   const checkRateLimit = async (uid: string, action: string, limit: number, windowMs: number = 5000) => {
-      const key = uid + "_" + action;
-      if (redisReady && redisStateClient) {
-        try {
-          const redisKey = "umetv:ratelimit:" + key;
-          const count = await redisStateClient.incr(redisKey);
-          if (count === 1) {
-            await redisStateClient.expire(redisKey, Math.max(1, Math.ceil(windowMs / 1000)));
-          }
-          return count > limit;
-        } catch (error) {
-          console.error("[Redis] rate-limit operation failed; falling back locally:", error instanceof Error ? error.message : error);
-        }
-      }
-      const now = Date.now();
-      let record = globalRateLimits.get(key);
-      if (!record) {
-          record = { count: 1, lastReset: now };
-          globalRateLimits.set(key, record);
-          return false;
-      }
-      if (now - record.lastReset > windowMs) {
-          record.count = 1;
-          record.lastReset = now;
-          return false;
-      }
-      record.count++;
-      return record.count > limit;
+    const key = uid + "_" + action;
+    const now = Date.now();
+    let record = globalRateLimits.get(key);
+    if (!record) { globalRateLimits.set(key, { count: 1, lastReset: now }); return false; }
+    if (now - record.lastReset > windowMs) { record.count = 1; record.lastReset = now; return false; }
+    record.count++;
+    return record.count > limit;
   };
 
   io.use(async (socket, next) => {
@@ -617,16 +367,6 @@ async function startServer() {
        }
     }
 
-    let turnServers: Record<string, unknown>[] = [];
-    try {
-       if (process.env.TURN_SERVERS) {
-           const parsed = JSON.parse(process.env.TURN_SERVERS);
-           if (Array.isArray(parsed)) {
-               turnServers = parsed;
-           }
-       }
-    } catch (e) {}
-
     socket.emit("webrtc_config", {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -713,25 +453,6 @@ async function startServer() {
         await clearSharedMatch(myUid);
       }
         
-      if (redisReady && redisStateClient) {
-        await removeFromSharedQueue(myUid);
-        const sharedMatch = await findSharedMatch(myUid, profile);
-        if (sharedMatch) {
-          metrics.matches++;
-          io.to(sharedMatch.partnerId).emit("matched", { initiator: true, partnerId: myUid, sessionId: sharedMatch.sessionId });
-          io.to(myUid).emit("matched", { initiator: false, partnerId: sharedMatch.partnerId, sessionId: sharedMatch.sessionId });
-          return;
-        }
-        const sharedQueueLength = await getSharedQueueLength();
-        if (sharedQueueLength >= MAX_QUEUE_SIZE) {
-          socket.emit("game_error", { message: "Matchmaking is busy. Please try again shortly." });
-          return;
-        }
-        await enqueueSharedUser({ userId: myUid, profile, queuedAt: Date.now() });
-        socket.emit("waiting");
-        return;
-      }
-
       const now = Date.now();
       queue = queue.filter(u => now - u.queuedAt <= QUEUE_ENTRY_TTL_MS && u.userId !== myUid);
       if (queue.length >= MAX_QUEUE_SIZE) {
@@ -1462,7 +1183,7 @@ async function startServer() {
   app.get("/api/admin/stats", async (req, res) => {
     const token = await getHttpUser(req);
     if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
-    res.json({ onlineUsers: await getOnlineUserCount(), queueLength: await getSharedQueueLength(), activeGames: Object.keys(games).length, connectedSockets: io.engine.clientsCount, redisReady, metrics });
+    res.json({ onlineUsers: await getOnlineUserCount(), queueLength: await getSharedQueueLength(), activeGames: Object.keys(games).length, connectedSockets: io.engine.clientsCount, metrics });
   });
 
   app.get("/api/admin/metrics", async (req, res) => {
@@ -1513,7 +1234,6 @@ async function startServer() {
       connectedSockets: io.engine.clientsCount,
       onlineUsers: await getOnlineUserCount(),
       queueLength: await getSharedQueueLength(),
-      redisReady,
       metrics,
     });
   });
@@ -1532,7 +1252,6 @@ async function startServer() {
   const shutdown = (signal: string) => {
     console.log(`[SHUTDOWN] Received ${signal}; closing server.`);
     io.close(async () => {
-      await closeRedisClients();
       httpServer.close(() => process.exit(0));
     });
     setTimeout(() => process.exit(1), 10000).unref();
