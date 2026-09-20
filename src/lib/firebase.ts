@@ -2,8 +2,6 @@ import { initializeApp } from "firebase/app";
 import {
   initializeAuth,
   browserLocalPersistence,
-  browserPopupRedirectResolver,
-  GoogleAuthProvider,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
@@ -30,10 +28,7 @@ const appCheck: AppCheck | null = import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KE
 
 const auth = initializeAuth(app, {
   persistence: browserLocalPersistence,
-  popupRedirectResolver: browserPopupRedirectResolver,
 });
-
-const googleProvider = new GoogleAuthProvider();
 const db = getFirestore(app, "umetvchat");
 
-export { app, appCheck, auth, googleProvider, db };
+export { app, appCheck, auth, db };
