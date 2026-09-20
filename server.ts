@@ -198,6 +198,17 @@ async function startServer() {
   const blockedUsers = new Map<string, Set<string>>();
   const disconnectTimers = new Map<string, NodeJS.Timeout>();
   const onlineUserIds = new Set<string>();
+  const metrics = {
+    matches: 0,
+    messages: 0,
+    reports: 0,
+    gamesCompleted: 0,
+    favoriteAdds: 0,
+    webRtcOffers: 0,
+    webRtcAnswers: 0,
+    webRtcIce: 0,
+  };
+
   const MAX_QUEUE_SIZE = 5000;
   const QUEUE_ENTRY_TTL_MS = 10 * 60 * 1000;
 
@@ -491,6 +502,7 @@ async function startServer() {
             matchSessions.set(myUid, sessionId);
             matchSessions.set(partnerUid, sessionId);
 
+            metrics.matches++;
             io.to(partnerUid).emit("matched", { initiator: true, partnerId: myUid, sessionId });
             io.to(myUid).emit("matched", { initiator: false, partnerId: partnerUid, sessionId });
             return;
@@ -514,7 +526,7 @@ async function startServer() {
     socket.on("webrtc_ice_candidate", (data: unknown) => {
       if (!isValidIceSignal(data) || checkRateLimit(myUid, "webrtc_ice", 60)) return;
       const partnerId = users[myUid];
-      if (partnerId && data.sessionId === matchSessions.get(myUid)) io.to(partnerId).emit("webrtc_ice_candidate", data);
+      if (partnerId && data.sessionId === matchSessions.get(myUid)) { metrics.webRtcIce++; io.to(partnerId).emit("webrtc_ice_candidate", data); }
     });
     socket.on("favorite_status", async () => {
       const partnerId = users[myUid];
@@ -660,7 +672,7 @@ async function startServer() {
 
       try {
         processGameAction(game, myUid, action);
-        if (game.state.winner && !game.completed) await recordGameResult(game);
+        if (game.state.winner && !game.completed) { await recordGameResult(game); metrics.gamesCompleted++; }
         game.processedActions.add(action.actionId);
         game.version++;
         io.to(game.player1).emit("game_sync", { state: game.state, version: game.version, turn: game.turn });
@@ -701,6 +713,7 @@ async function startServer() {
                   source: "chat_session",
                   status: "open"
               });
+              metrics.reports++;
           } catch (e) {
               console.error("Failed to persist block for", myUid, e);
           }
@@ -1107,6 +1120,20 @@ async function startServer() {
     } catch (error) { console.error("[FAVORITES] lookup failed", error); res.status(500).json({ error: "lookup_failed" }); }
   });
 
+  app.delete("/api/me/favorites/:uid", async (req, res) => {
+    const token = await getHttpUser(req);
+    if (!token) return res.status(401).json({ error: "authentication_required" });
+    if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
+    const targetUid = String(req.params.uid || "").trim();
+    if (!/^[A-Za-z0-9_-]{6,128}$/.test(targetUid)) return res.status(400).json({ error: "invalid_user" });
+    try {
+      await getFirestore().collection("favorites").doc(token.uid).set({ userIds: FieldValue.arrayRemove(targetUid), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ error: "update_failed" });
+    }
+  });
+
   app.get("/api/admin/reports", async (req, res) => {
     const token = await getHttpUser(req);
     if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
@@ -1123,10 +1150,38 @@ async function startServer() {
     } catch (error) { console.error("[MODERATION] reports lookup failed", error); res.status(500).json({ error: "lookup_failed" }); }
   });
 
+  app.patch("/api/admin/reports/:id", async (req, res) => {
+    const token = await getHttpUser(req);
+    if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
+    if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
+    const reportId = String(req.params.id || "").trim();
+    const payload = isPlainObject(req.body) ? req.body : {};
+    const status = payload.status;
+    if (!/^[A-Za-z0-9_-]{5,150}$/.test(reportId) || typeof status !== "string" || !["open","resolved","dismissed"].includes(status)) {
+      return res.status(400).json({ error: "invalid_report_status" });
+    }
+    try {
+      await getFirestore().collection("reports").doc(reportId).set({
+        status,
+        reviewedBy: token.uid,
+        reviewedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      res.json({ ok: true, status });
+    } catch {
+      res.status(500).json({ error: "update_failed" });
+    }
+  });
+
   app.get("/api/admin/stats", async (req, res) => {
     const token = await getHttpUser(req);
     if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
-    res.json({ onlineUsers: onlineUserIds.size, queueLength: queue.length, activeGames: Object.keys(games).length, connectedSockets: io.engine.clientsCount });
+    res.json({ onlineUsers: onlineUserIds.size, queueLength: queue.length, activeGames: Object.keys(games).length, connectedSockets: io.engine.clientsCount, metrics });
+  });
+
+  app.get("/api/admin/metrics", async (req, res) => {
+    const token = await getHttpUser(req);
+    if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
+    res.json({ metrics });
   });
 
   app.post("/api/admin/users/:uid/action", async (req, res) => {
@@ -1168,6 +1223,7 @@ async function startServer() {
       connectedSockets: io.engine.clientsCount,
       onlineUsers: onlineUserIds.size,
       queueLength: queue.length,
+      metrics,
     });
   });
 
