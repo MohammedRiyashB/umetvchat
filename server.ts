@@ -10,6 +10,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { getApps, initializeApp, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import type { Request } from "express";
 import { getAppCheck } from 'firebase-admin/app-check';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import type { CarromState, ChessState, GameState, HandCricketState, TicTacToeState } from './src/components/games/gameTypes';
@@ -75,6 +76,7 @@ async function startServer() {
     legacyHeaders: false,
     message: { error: "rate_limited" }
   });
+  const pageLimiter = rateLimit({ windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false, message: { error: "rate_limited" } });
   app.use("/api/", apiLimiter);
   app.use(express.json({ limit: "1mb" })); // Prevent oversized payloads
 
@@ -103,6 +105,29 @@ async function startServer() {
   });
     
   const PORT = Number(process.env.PORT) || 3000;
+  const ADMIN_UIDS = new Set((process.env.ADMIN_UIDS || "").split(",").map((value) => value.trim()).filter(Boolean));
+
+  const getHttpUser = async (req: Request) => {
+    if (!firebaseAdminInitialized) return null;
+    const header = req.headers.authorization;
+    if (typeof header !== "string" || !header.startsWith("Bearer ")) return null;
+    const bearer = header.slice(7).trim();
+    if (!bearer || bearer.length > 10000) return null;
+    try { return await getAuth().verifyIdToken(bearer); } catch { return null; }
+  };
+  const isModeratorToken = (token: { uid: string; admin?: boolean; moderator?: boolean } | null) => Boolean(token && (token.admin === true || token.moderator === true || ADMIN_UIDS.has(token.uid)));
+  const getActiveRestriction = async (uid: string) => {
+    if (!firebaseAdminInitialized) return null;
+    try {
+      const snap = await getFirestore().collection("moderation").doc(uid).get();
+      if (!snap.exists) return null;
+      const data = snap.data() || {};
+      if (data.banned === true) return { type: "banned" as const };
+      const suspendedUntilMs = typeof data.suspendedUntilMs === "number" ? data.suspendedUntilMs : 0;
+      if (suspendedUntilMs > Date.now()) return { type: "suspended" as const, until: suspendedUntilMs };
+    } catch (error) { console.error("[MODERATION] Failed to load restriction for", uid, error); }
+    return null;
+  };
 
   // WebRTC matching logic
   interface UserProfile {
@@ -187,6 +212,7 @@ async function startServer() {
     turn: string; // userId whose turn it is
     rematchRequests?: Record<string, boolean>;
     processedActions: Set<string>;
+    completed?: boolean;
   }
   const games: Record<string, GameSession> = {}; // gameId -> GameSession
   const userGames: Record<string, string> = {}; // userId -> gameId
@@ -247,7 +273,12 @@ async function startServer() {
           return next(new Error("firebase_admin_uninitialized"));
         }
       }
+      if (firebaseAdminInitialized) {
+        const restriction = await getActiveRestriction(socket.data.userId as string);
+        if (restriction) return next(new Error("account_restricted"));
+      }
       next();
+    } catch (error) {      next();
     } catch (error) {
       return next(new Error("invalid_token"));
     }
@@ -293,6 +324,8 @@ async function startServer() {
 
   io.on("connection", async (socket: Socket) => {
     const myUid = socket.data.userId as string;
+    const restriction = await getActiveRestriction(myUid);
+    if (restriction) return socket.disconnect(true);
     socket.join(myUid);
     onlineUserIds.add(myUid);
 
@@ -483,6 +516,31 @@ async function startServer() {
       const partnerId = users[myUid];
       if (partnerId && data.sessionId === matchSessions.get(myUid)) io.to(partnerId).emit("webrtc_ice_candidate", data);
     });
+    socket.on("favorite_status", async () => {
+      const partnerId = users[myUid];
+      if (!partnerId || !firebaseAdminInitialized) { socket.emit("favorite_status", { favorite: false }); return; }
+      try {
+        const snap = await getFirestore().collection("favorites").doc(myUid).get();
+        const ids = Array.isArray(snap.data()?.userIds) ? snap.data()?.userIds : [];
+        socket.emit("favorite_status", { favorite: ids.includes(partnerId) });
+      } catch { socket.emit("favorite_status", { favorite: false }); }
+    });
+    socket.on("favorite_user", async () => {
+      const partnerId = users[myUid];
+      if (!partnerId || !firebaseAdminInitialized || checkRateLimit(myUid, "favorite", 10, 60000)) return;
+      try {
+        await getFirestore().collection("favorites").doc(myUid).set({ userIds: FieldValue.arrayUnion(partnerId), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        socket.emit("favorite_status", { favorite: true });
+      } catch (error) { console.error("[FAVORITES] Failed to save favorite", error); }
+    });
+    socket.on("unfavorite_user", async () => {
+      const partnerId = users[myUid];
+      if (!partnerId || !firebaseAdminInitialized || checkRateLimit(myUid, "favorite", 10, 60000)) return;
+      try {
+        await getFirestore().collection("favorites").doc(myUid).set({ userIds: FieldValue.arrayRemove(partnerId), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        socket.emit("favorite_status", { favorite: false });
+      } catch (error) { console.error("[FAVORITES] Failed to remove favorite", error); }
+    });
     socket.on("chat_reaction", (reaction: unknown) => {
       const allowedReactions = new Set(["👋", "❤️", "😂", "👍"]);
       if (typeof reaction !== "string" || !allowedReactions.has(reaction)) return;
@@ -558,7 +616,8 @@ async function startServer() {
         state: initializeGameState(pending.gameType),
         version: 1,
         turn: challengerId,
-        processedActions: new Set<string>()
+        processedActions: new Set<string>(),
+        completed: false
       };
       if (pending.gameType === "handcricket") {
           session.state = { inning: 1, p1Role: "batting", p1Choice: null, p2Choice: null, p1Score: 0, p2Score: 0, target: null, gameOver: false, result: null, round: 1 };
@@ -601,6 +660,7 @@ async function startServer() {
 
       try {
         processGameAction(game, myUid, action);
+        if (game.state.winner && !game.completed) await recordGameResult(game);
         game.processedActions.add(action.actionId);
         game.version++;
         io.to(game.player1).emit("game_sync", { state: game.state, version: game.version, turn: game.turn });
@@ -621,6 +681,8 @@ async function startServer() {
       const category = isPlainObject(payload) && typeof payload.category === "string" && allowedCategories.has(payload.category)
         ? payload.category
         : "other";
+      const duplicateReportKey = myUid + ":" + partnerId + ":" + category;
+      if (checkRateLimit(duplicateReportKey, "duplicate_report", 1, 10 * 60 * 1000)) return;
       
       if (!blockedUsers.has(myUid)) blockedUsers.set(myUid, new Set());
       blockedUsers.get(myUid)!.add(partnerId);
@@ -751,6 +813,31 @@ async function startServer() {
     Number.isInteger(value.version) &&
     value.version >= 1;
 
+  async function recordGameResult(game: GameSession) {
+    if (!firebaseAdminInitialized || game.completed || !game.state.winner) return;
+    game.completed = true;
+    const winner = game.state.winner;
+    const results: Array<{ uid: string; result: "win" | "loss" | "draw" }> = [
+      { uid: game.player1, result: winner === "draw" ? "draw" : winner === "host" ? "win" : "loss" },
+      { uid: game.player2, result: winner === "draw" ? "draw" : winner === "guest" ? "win" : "loss" },
+    ];
+    await Promise.all(results.map(async ({ uid, result }) => {
+      const ref = getFirestore().collection("gameStats").doc(uid);
+      await getFirestore().runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const data = snap.exists ? (snap.data() || {}) : {};
+        const played = Number(data.played || 0) + 1;
+        const wins = Number(data.wins || 0) + (result === "win" ? 1 : 0);
+        const losses = Number(data.losses || 0) + (result === "loss" ? 1 : 0);
+        const draws = Number(data.draws || 0) + (result === "draw" ? 1 : 0);
+        const points = Number(data.points || 0) + (result === "win" ? 3 : result === "draw" ? 1 : 0);
+        const winStreak = result === "win" ? Number(data.winStreak || 0) + 1 : 0;
+        const bestWinStreak = Math.max(Number(data.bestWinStreak || 0), winStreak);
+        tx.set(ref, { played, wins, losses, draws, points, winStreak, bestWinStreak, lastGameAt: FieldValue.serverTimestamp() }, { merge: true });
+      });
+    }));
+  }
+
   function processGameAction(game: GameSession, playerId: string, action: GameActionPayload) {
     if (action.type === "rematch") {
       const isGameOver =
@@ -766,6 +853,7 @@ async function startServer() {
         game.state = initializeGameState(game.gameType);
         game.turn = game.player1;
         game.rematchRequests = {};
+        game.completed = false;
       } else {
         throw new Error("Waiting for opponent to accept rematch");
       }
@@ -967,7 +1055,110 @@ async function startServer() {
     throw new Error("Unsupported game type");
   }
 
-  app.get("/api/health", (_req, res) => {
+  app.get("/api/leaderboard", async (req, res) => {
+    if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
+    const requestedLimit = Number(req.query.limit);
+    const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 20;
+    try {
+      const snapshot = await getFirestore().collection("gameStats").limit(200).get();
+      const rows = await Promise.all(snapshot.docs.map(async (docSnap) => {
+        const data = docSnap.data() || {};
+        const userSnap = await getFirestore().collection("users").doc(docSnap.id).get();
+        const userData = userSnap.exists ? userSnap.data() || {} : {};
+        return { uid: docSnap.id, name: typeof userData.name === "string" && userData.name ? userData.name : "Guest", played: Number(data.played || 0), wins: Number(data.wins || 0), losses: Number(data.losses || 0), draws: Number(data.draws || 0), points: Number(data.points || 0), bestWinStreak: Number(data.bestWinStreak || 0) };
+      }));
+      rows.sort((a, b) => b.points - a.points || b.wins - a.wins || b.bestWinStreak - a.bestWinStreak);
+      res.json({ leaderboard: rows.slice(0, limit) });
+    } catch (error) { console.error("[LEADERBOARD] lookup failed", error); res.status(500).json({ error: "lookup_failed" }); }
+  });
+
+  app.get("/api/me/stats", async (req, res) => {
+    const token = await getHttpUser(req);
+    if (!token) return res.status(401).json({ error: "authentication_required" });
+    if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
+    try {
+      const snap = await getFirestore().collection("gameStats").doc(token.uid).get();
+      const data = snap.exists ? snap.data() || {} : {};
+      const wins = Number(data.wins || 0), played = Number(data.played || 0);
+      const achievements = [
+        ...(played >= 1 ? ["first_game"] : []),
+        ...(wins >= 1 ? ["first_win"] : []),
+        ...(wins >= 10 ? ["ten_wins"] : []),
+        ...(wins >= 25 ? ["twenty_five_wins"] : []),
+        ...(Number(data.bestWinStreak || 0) >= 5 ? ["five_win_streak"] : []),
+      ];
+      res.json({ stats: { played, wins, losses: Number(data.losses || 0), draws: Number(data.draws || 0), points: Number(data.points || 0), winStreak: Number(data.winStreak || 0), bestWinStreak: Number(data.bestWinStreak || 0) }, achievements });
+    } catch (error) { console.error("[STATS] lookup failed", error); res.status(500).json({ error: "lookup_failed" }); }
+  });
+
+  app.get("/api/me/favorites", async (req, res) => {
+    const token = await getHttpUser(req);
+    if (!token) return res.status(401).json({ error: "authentication_required" });
+    if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
+    try {
+      const snap = await getFirestore().collection("favorites").doc(token.uid).get();
+      const ids = Array.isArray(snap.data()?.userIds) ? snap.data()!.userIds.filter((id: unknown): id is string => typeof id === "string").slice(0, 100) : [];
+      const favorites = await Promise.all(ids.map(async (uid) => {
+        const profileSnap = await getFirestore().collection("users").doc(uid).get();
+        const profile = profileSnap.exists ? profileSnap.data() || {} : {};
+        return { uid, name: typeof profile.name === "string" && profile.name ? profile.name : "Guest" };
+      }));
+      res.json({ favorites });
+    } catch (error) { console.error("[FAVORITES] lookup failed", error); res.status(500).json({ error: "lookup_failed" }); }
+  });
+
+  app.get("/api/admin/reports", async (req, res) => {
+    const token = await getHttpUser(req);
+    if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
+    if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
+    try {
+      const snapshot = await getFirestore().collection("reports").limit(100).get();
+      const reports = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data() || {};
+        const createdAt = data.createdAt && typeof data.createdAt.toDate === "function" ? data.createdAt.toDate().toISOString() : null;
+        return { id: docSnap.id, reporterId: typeof data.reporterId === "string" ? data.reporterId : "", reportedUserId: typeof data.reportedUserId === "string" ? data.reportedUserId : "", category: typeof data.category === "string" ? data.category : "other", status: typeof data.status === "string" ? data.status : "open", createdAt };
+      });
+      reports.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      res.json({ reports });
+    } catch (error) { console.error("[MODERATION] reports lookup failed", error); res.status(500).json({ error: "lookup_failed" }); }
+  });
+
+  app.get("/api/admin/stats", async (req, res) => {
+    const token = await getHttpUser(req);
+    if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
+    res.json({ onlineUsers: onlineUserIds.size, queueLength: queue.length, activeGames: Object.keys(games).length, connectedSockets: io.engine.clientsCount });
+  });
+
+  app.post("/api/admin/users/:uid/action", async (req, res) => {
+    const token = await getHttpUser(req);
+    if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
+    if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
+    const targetUid = String(req.params.uid || "").trim();
+    const payload = isPlainObject(req.body) ? req.body : {};
+    const action = payload.action;
+    const reason = typeof payload.reason === "string" ? payload.reason.trim().slice(0, 500) : "";
+    const allowedActions = new Set(["warn", "suspend", "ban", "unban"]);
+    if (!/^[A-Za-z0-9_-]{6,128}$/.test(targetUid) || typeof action !== "string" || !allowedActions.has(action)) return res.status(400).json({ error: "invalid_action" });
+    if (targetUid === token.uid) return res.status(400).json({ error: "cannot_moderate_self" });
+    const durationMinutesRaw = Number(payload.durationMinutes);
+    const durationMinutes = Number.isFinite(durationMinutesRaw) ? Math.min(Math.max(Math.floor(durationMinutesRaw), 5), 60 * 24 * 30) : 60;
+    const moderationRef = getFirestore().collection("moderation").doc(targetUid);
+    const actionRef = getFirestore().collection("moderationActions").doc(crypto.randomUUID());
+    const moderationUpdate: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp(), updatedBy: token.uid, lastReason: reason };
+    if (action === "ban") { moderationUpdate.banned = true; moderationUpdate.suspendedUntilMs = 0; }
+    else if (action === "unban") { moderationUpdate.banned = false; moderationUpdate.suspendedUntilMs = 0; }
+    else if (action === "suspend") { moderationUpdate.banned = false; moderationUpdate.suspendedUntilMs = Date.now() + durationMinutes * 60 * 1000; }
+    else { moderationUpdate.lastWarningAt = FieldValue.serverTimestamp(); }
+    await moderationRef.set(moderationUpdate, { merge: true });
+    await actionRef.set({ targetUid, moderatorUid: token.uid, action, reason, durationMinutes: action === "suspend" ? durationMinutes : null, createdAt: FieldValue.serverTimestamp() });
+    if (action === "ban" || action === "suspend") {
+      io.in(targetUid).emit("moderation_notice", { message: action === "ban" ? "Your account has been banned by a moderator." : "Your account has been temporarily suspended for " + durationMinutes + " minutes." });
+      io.in(targetUid).disconnectSockets(true);
+    }
+    res.json({ ok: true, action, targetUid });
+  });
+
+  app.get("/api/health", pageLimiter, (_req, res) => {  app.get("/api/health", (_req, res) => {
     const ready = firebaseAdminInitialized || (process.env.NODE_ENV !== "production" && process.env.ALLOW_MOCK_AUTH === "true");
     res.status(ready ? 200 : 503).json({
       status: ready ? "ok" : "not_ready",
@@ -988,7 +1179,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath, { maxAge: '1y' }));
-    app.get("/{*splat}", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
+    app.get("/{*splat}", pageLimiter, (_req, res) => res.sendFile(path.join(distPath, "index.html")));
   }
   
   const shutdown = (signal: string) => {
