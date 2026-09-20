@@ -518,12 +518,12 @@ async function startServer() {
     socket.on("webrtc_offer", (data: unknown) => {
       if (!isValidSdpSignal(data) || checkRateLimit(myUid, "webrtc_offer", 20)) return;
       const partnerId = users[myUid];
-      if (partnerId && data.sessionId === matchSessions.get(myUid)) io.to(partnerId).emit("webrtc_offer", data);
+      if (partnerId && data.sessionId === matchSessions.get(myUid)) { metrics.webRtcOffers++; io.to(partnerId).emit("webrtc_offer", data); }
     });
     socket.on("webrtc_answer", (data: unknown) => {
       if (!isValidSdpSignal(data) || checkRateLimit(myUid, "webrtc_answer", 20)) return;
       const partnerId = users[myUid];
-      if (partnerId && data.sessionId === matchSessions.get(myUid)) io.to(partnerId).emit("webrtc_answer", data);
+      if (partnerId && data.sessionId === matchSessions.get(myUid)) { metrics.webRtcAnswers++; io.to(partnerId).emit("webrtc_answer", data); }
     });
     socket.on("webrtc_ice_candidate", (data: unknown) => {
       if (!isValidIceSignal(data) || checkRateLimit(myUid, "webrtc_ice", 60)) return;
@@ -544,6 +544,7 @@ async function startServer() {
       if (!partnerId || !firebaseAdminInitialized || checkRateLimit(myUid, "favorite", 10, 60000)) return;
       try {
         await getFirestore().collection("favorites").doc(myUid).set({ userIds: FieldValue.arrayUnion(partnerId), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        metrics.favoriteAdds++;
         socket.emit("favorite_status", { favorite: true });
       } catch (error) { console.error("[FAVORITES] Failed to save favorite", error); }
     });
@@ -575,6 +576,7 @@ async function startServer() {
        
        const partnerId = users[myUid];
        if (partnerId) {
+          metrics.messages++;
           io.to(partnerId).emit("chat_message", cleanMsg);
        }
     });
