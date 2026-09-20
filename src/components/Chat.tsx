@@ -189,7 +189,16 @@ export default function Chat({ onBack }: ChatProps) {
       
       if (!isMounted) return;
 
-      const socket = io(import.meta.env.VITE_SOCKET_URL || "", {
+      // Firebase Hosting does not proxy Socket.IO/WebSocket traffic to Render.
+      // Keep an explicit production fallback so chat works even when VITE_SOCKET_URL
+      // is not injected into the Firebase build environment.
+      const configuredSocketUrl = typeof import.meta.env.VITE_SOCKET_URL === "string"
+        ? import.meta.env.VITE_SOCKET_URL.trim()
+        : "";
+      const socketUrl = configuredSocketUrl
+        || (import.meta.env.DEV ? window.location.origin : "https://umetvchat.onrender.com");
+
+      const socket = io(socketUrl, {
         path: "/socket.io",
         transports: ["websocket", "polling"],
         auth: { token, appCheckToken },
@@ -225,7 +234,8 @@ export default function Chat({ onBack }: ChatProps) {
                 }
             }
         }
-        addSystemMessage(`Connection error: ${error.message}`);
+        const detail = error.message || "Unable to reach the realtime server";
+        addSystemMessage(`WebSocket connection error: ${detail}. Retrying automatically…`);
       });
 
       socket.on('disconnect', (reason) => {
