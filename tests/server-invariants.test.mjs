@@ -121,3 +121,14 @@ test("server tracks operational metrics", () => {
   assert.match(server, /metrics\.messages/);
   assert.match(server, /metrics\.webRtcIce/);
 });
+
+test("Redis infrastructure is wired for shared realtime deployments", () => {
+  assert.match(server, /@socket\.io\/redis-adapter/);
+  assert.match(server, /createAdapter\(redisPubClient, redisSubClient\)/);
+  assert.match(server, /REDIS_URL/);
+  assert.match(server, /REDIS_REQUIRED_FOR_MULTI_INSTANCE/);
+  assert.match(server, /umetv:ratelimit/);
+  assert.match(server, /umetv:presence:counts/);
+  assert.equal(typeof packageJson.dependencies?.["redis"], "string");
+  assert.equal(typeof packageJson.dependencies?.["@socket.io/redis-adapter"], "string");
+});
