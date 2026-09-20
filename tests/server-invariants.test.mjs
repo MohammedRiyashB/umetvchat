@@ -132,3 +132,22 @@ test("Redis infrastructure is wired for shared realtime deployments", () => {
   assert.equal(typeof packageJson.dependencies?.["redis"], "string");
   assert.equal(typeof packageJson.dependencies?.["@socket.io/redis-adapter"], "string");
 });
+
+test("Redis matchmaking uses a shared queue, distributed lock, and shared match sessions", () => {
+  assert.match(server, /umetv:matchmaking:queue/);
+  assert.match(server, /umetv:matchmaking:entries/);
+  assert.match(server, /umetv:matchmaking:lock/);
+  assert.match(server, /NX: true, PX: REDIS_MATCH_LOCK_TTL_MS/);
+  assert.match(server, /umetv:match:/);
+  assert.match(server, /findSharedMatch/);
+  assert.match(server, /getMatchedUser/);
+  assert.match(server, /getMatchSessionId/);
+  assert.match(server, /zRemRangeByScore/);
+});
+
+test("shared matchmaking cleanup removes queue and match state on leave/report/disconnect", () => {
+  assert.match(server, /removeFromSharedQueue\(myUid\)/);
+  assert.match(server, /clearSharedMatch\(myUid\)/);
+  assert.match(server, /clearSharedMatch\(partnerId\)/);
+  assert.match(server, /setTimeout\(async \(\) =>/);
+});
