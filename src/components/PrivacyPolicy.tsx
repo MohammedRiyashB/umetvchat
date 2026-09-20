@@ -37,7 +37,7 @@ export default function PrivacyPolicy() {
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">1. Information We Collect</h3>
             <ul className="list-disc pl-5 space-y-2">
               <li><strong>Automatically Collected Information:</strong> We may log standard technical information, such as your browser type and operating system, to facilitate the connection between users.</li>
-              <li><strong>Profile Information:</strong> If you create a profile, we store your name, date of birth, gender, and optional interests in Firestore to support age eligibility and matchmaking. We minimize local browser storage and do not store your date of birth in the local profile cache.</li>
+              <li><strong>Profile Information:</strong> We store a name, date of birth, gender, and optional interests in a protected Firestore profile when you use matchmaking. Guest mode uses an anonymous Firebase session rather than an email/password or Google account. The date of birth is not stored in the local profile cache.</li>
               <li><strong>Camera and Microphone Data:</strong> We require access to your camera and microphone to enable video chatting. <strong>We do not record, store, or intercept your video or audio streams.</strong> Connections are established via WebRTC, meaning data is transmitted peer-to-peer whenever possible.</li>
             </ul>
 
@@ -48,6 +48,7 @@ export default function PrivacyPolicy() {
               <li>To enforce our Community Rules by implementing account-level blocking and reporting mechanisms to maintain a safe environment.</li>
               <li>To monitor general usage statistics (e.g., active connection counts) and prevent abuse, spam, fraud, and repeated violations.</li>
               <li>To process user reports and blocks, maintain safety records, and investigate violations of the Community Rules.</li>
+              <li>To maintain optional favorites and server-recorded multiplayer game statistics, achievements, points, and leaderboard entries.</li>
             </ul>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">3. Data Security</h3>
@@ -56,7 +57,7 @@ export default function PrivacyPolicy() {
 
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">4. Data Retention and Deletion</h3>
-            <p>Profile data can be deleted through the account settings. Safety and moderation records may be retained for a limited period when reasonably necessary to protect users, prevent abuse, resolve disputes, or comply with legal obligations.</p>
+            <p>Profile data can be deleted through the account settings. Guest sessions are anonymous Firebase accounts and can be deleted from the same account controls. Safety, moderation, favorites, and game-stat records may be retained for a limited period when reasonably necessary to protect users, prevent abuse, resolve disputes, maintain platform integrity, or comply with legal obligations.</p>
             <p>Video and audio are not intentionally recorded by UmeTV. WebRTC media is designed to flow directly between participants when network conditions allow; signaling metadata passes through the real-time service.</p>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">5. Third-Party Services</h3>
