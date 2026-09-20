@@ -35,16 +35,16 @@ export default function Terms() {
             </p>
             
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">1. Acceptance of Terms</h3>
-            <p>UmeTV is intended only for users aged 18 years or older. The service requires a valid date of birth in the user's profile and the server checks the declared age before matchmaking. Users remain responsible for providing truthful information.</p>
+            <p>UmeTV is intended only for users aged 18 years or older. Users may start in guest mode without creating an email/password or Google login, but the service still requires a valid date of birth and the server checks the declared age before matchmaking. Users remain responsible for providing truthful information.</p>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">2. User Conduct</h3>
             <p>You agree to use Ume Tv strictly in accordance with our Community Rules. You are solely responsible for your conduct and any data, text, information, usernames, graphics, photos, profiles, audio and video clips, links that you submit, post, and display on Ume Tv.</p>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">3. Moderation and Enforcement</h3>
-            <p>We provide reporting and blocking tools and may use automated abuse protections, rate limits, and moderation records to enforce these Terms. We may restrict, suspend, or terminate access for violations, abuse, fraud, spam, or attempts to circumvent safety controls.</p>
+            <p>We provide reporting, blocking, favorites, automated abuse protections, rate limits, and moderator controls. We may warn, restrict, suspend, or terminate access for violations, abuse, fraud, spam, or attempts to circumvent safety controls.</p>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">4. Privacy and Data</h3>
-            <p>Our collection and use of account, profile, safety, and technical information are described in the Privacy Policy. UmeTV does not intentionally record video or audio conversations.</p>
+            <p>Our collection and use of guest-session, profile, safety, favorites, game-statistics, and technical information are described in the Privacy Policy. UmeTV does not intentionally record video or audio conversations.</p>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">5. Disclaimers</h3>
             <p>The service is provided "as is" and "as available". BMR inc. makes no warranties, expressed or implied, regarding the continuous availability or reliability of the service.</p>
