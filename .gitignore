@@ -12,7 +12,3 @@ coverage/
 .firebase/
 .agents/
 agent/
-
-# Never commit TURN TLS private keys/certificates
-infra/coturn-certs/*
-!infra/coturn-certs/.gitkeep
