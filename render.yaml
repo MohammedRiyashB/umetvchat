@@ -36,19 +36,5 @@ services:
         sync: false
       - key: VITE_FIREBASE_APPCHECK_SITE_KEY
         sync: false
-      - key: TURN_SERVERS
-        sync: false
-      - key: TURN_REALM
-        sync: false
-      - key: TURN_USERNAME
-        sync: false
-      - key: TURN_PASSWORD
-        sync: false
-      - key: TURN_EXTERNAL_IP
-        sync: false
       - key: ADMIN_UIDS
         sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: REDIS_REQUIRED_FOR_MULTI_INSTANCE
-        value: "false"
