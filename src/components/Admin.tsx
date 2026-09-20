@@ -36,6 +36,18 @@ export default function Admin() {
 
   useEffect(() => { void load(); }, []);
 
+  const resolveReport = async (id: string, status: "resolved" | "dismissed") => {
+    try {
+      await apiFetch("/api/admin/reports/" + encodeURIComponent(id), {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update report");
+    }
+  };
+
   const moderate = async (uid: string, action: "warn" | "suspend" | "ban" | "unban") => {
     const reason = window.prompt("Reason for moderation action:", "Community rules");
     if (reason === null) return;
@@ -82,6 +94,8 @@ export default function Admin() {
                   <button onClick={() => void moderate(report.reportedUserId, "suspend")} className="px-3 py-2 rounded-xl bg-sky-500/10 text-sky-200 font-bold text-sm flex items-center gap-1"><Clock3 className="w-4 h-4" /> Suspend</button>
                   <button onClick={() => void moderate(report.reportedUserId, "ban")} className="px-3 py-2 rounded-xl bg-red-500/10 text-red-200 font-bold text-sm flex items-center gap-1"><Ban className="w-4 h-4" /> Ban</button>
                   <button onClick={() => void moderate(report.reportedUserId, "unban")} className="px-3 py-2 rounded-xl bg-emerald-500/10 text-emerald-200 font-bold text-sm">Unban</button>
+                  <button onClick={() => void resolveReport(report.id, "resolved")} className="px-3 py-2 rounded-xl bg-white/10 text-white font-bold text-sm">Resolve</button>
+                  <button onClick={() => void resolveReport(report.id, "dismissed")} className="px-3 py-2 rounded-xl bg-white/5 text-slate-300 font-bold text-sm">Dismiss</button>
                 </div>
               </div>
             ))}
