@@ -6,6 +6,7 @@ import {
   GoogleAuthProvider,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,6 +21,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+const appCheck: AppCheck | null = import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY
+  ? initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(import.meta.env.VITE_FIREBASE_APPCHECK_SITE_KEY),
+      isTokenAutoRefreshEnabled: true,
+    })
+  : null;
+
 const auth = initializeAuth(app, {
   persistence: browserLocalPersistence,
   popupRedirectResolver: browserPopupRedirectResolver,
@@ -28,4 +36,4 @@ const auth = initializeAuth(app, {
 const googleProvider = new GoogleAuthProvider();
 const db = getFirestore(app, "umetvchat");
 
-export { auth, googleProvider, db };
+export { app, appCheck, auth, googleProvider, db };

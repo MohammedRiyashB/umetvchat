@@ -1,21 +1,17 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+UmeTV is under active development. Security fixes are applied to the current `main` branch and the latest published release.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+## Reporting a vulnerability
 
-## Reporting a Vulnerability
+Please report suspected security vulnerabilities privately through GitHub's **Security Advisories** feature for this repository.
 
-Use this section to tell people how to report a vulnerability.
+Do not open a public issue for an unpatched vulnerability or include secrets, authentication tokens, private keys, or user-identifying information in a public report.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+Include the affected component or file, a concise description, reproduction steps or proof of concept, expected versus actual behavior, and relevant logs with secrets removed.
+
+UmeTV supports Firebase-authenticated realtime sessions, server-side input validation, rate limits, WebRTC session binding, Firestore security rules, and optional Firebase App Check for realtime connections.
+
+We will acknowledge reports as soon as practical and investigate them based on severity and impact.

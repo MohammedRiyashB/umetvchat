@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Target, Shield, Globe, Zap, MessageCircle, Coins, X, PlaySquare, LogOut } from 'lucide-react';
 import { auth, googleProvider, db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import Banner300x250Ad from './ads/Banner300x250Ad';
 import NativeBannerAd from './ads/NativeBannerAd';
 import SEO from './SEO';
@@ -13,7 +13,8 @@ import {
   signInAnonymously,
   onAuthStateChanged,
   signOut,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  deleteUser
 } from 'firebase/auth';
 
 
@@ -22,6 +23,17 @@ interface HomeProps {
   onNavigate: (page: string) => void;
   currentPage: string;
 }
+
+const readError = (error: unknown): { code: string; message: string } => {
+  if (typeof error === "object" && error !== null) {
+    const value = error as { code?: unknown; message?: unknown };
+    return {
+      code: typeof value.code === "string" ? value.code : "unknown",
+      message: typeof value.message === "string" ? value.message : "Unknown error"
+    };
+  }
+  return { code: "unknown", message: "Unknown error" };
+};
 
 export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
   const [onlineCount, setOnlineCount] = useState(0);
@@ -59,11 +71,26 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
           }
           setShowProfileSetup(true);
         } else {
-          setProfileData(docSnap.data() as any);
-          localStorage.setItem(`umetv_profile_${user.uid}`, JSON.stringify(docSnap.data()));
+          const data = docSnap.data();
+          const safeProfile = {
+            name: typeof data.name === "string" ? data.name : "",
+            age: typeof data.age === "string" ? data.age : "",
+            gender: typeof data.gender === "string" ? data.gender : "",
+            interests: Array.isArray(data.interests)
+              ? data.interests.filter((item): item is string => typeof item === "string").slice(0, 20)
+              : []
+          };
+          setProfileData(safeProfile);
+          localStorage.setItem(`umetv_profile_${user.uid}`, JSON.stringify({
+            name: safeProfile.name,
+            interests: safeProfile.interests
+          }));
         }
       } else {
         setIsLoggedIn(false);
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith("umetv_profile_")) localStorage.removeItem(key);
+        }
       }
     });
     return () => unsubscribe();
@@ -87,17 +114,38 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
       return;
     }
 
-    const dob = new Date(profileData.age);
-
-    if (isNaN(dob.getTime()) || dob > new Date()) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(profileData.age)) {
       setAuthError('Please enter a valid Date of Birth.');
       return;
     }
 
-    const age = new Date(Date.now() - dob.getTime()).getUTCFullYear() - 1970;
+    const dob = new Date(`${profileData.age}T00:00:00.000Z`);
+    if (Number.isNaN(dob.getTime()) || dob.toISOString().slice(0, 10) !== profileData.age) {
+      setAuthError('Please enter a valid Date of Birth.');
+      return;
+    }
+
+    const today = new Date();
+    let age = today.getUTCFullYear() - dob.getUTCFullYear();
+    const birthdayPassed =
+      today.getUTCMonth() > dob.getUTCMonth() ||
+      (today.getUTCMonth() === dob.getUTCMonth() && today.getUTCDate() >= dob.getUTCDate());
+    if (!birthdayPassed) age -= 1;
 
     if (age < 18) {
       setAuthError('You must be at least 18 years old to use UmeTV.');
+      return;
+    }
+
+    const cleanInterests = Array.from(new Set(
+      (Array.isArray(profileData.interests) ? profileData.interests : [])
+        .filter((item): item is string => typeof item === 'string')
+        .map(item => item.trim().slice(0, 50))
+        .filter(Boolean)
+    )).slice(0, 20);
+
+    if (name.length > 100 || profileData.gender.length > 32) {
+      setAuthError('Please keep your profile information within the allowed limits.');
       return;
     }
 
@@ -107,7 +155,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
       name,
       age: profileData.age,
       gender: profileData.gender,
-      interests: Array.isArray(profileData.interests) ? profileData.interests : []
+      interests: cleanInterests
     };
 
     try {
@@ -121,7 +169,6 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
 
       const localProfileCache = {
         name: profile.name,
-        age: profile.age,
         interests: profile.interests
       };
 
@@ -150,8 +197,8 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     try {
       await sendPasswordResetEmail(auth, resetEmail);
       setResetMessage("Password reset email sent! Check your inbox.");
-    } catch (error: any) {
-      setResetMessage(error.message);
+    } catch (error: unknown) {
+      setResetMessage(readError(error).message);
     }
   };
 
@@ -160,8 +207,10 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
       setAuthError('');
       await signInWithPopup(auth, googleProvider);
       setShowAuth(false);
-    } catch (error: any) {
-      console.log(error); setAuthError(error.code + ": " + error.message);
+    } catch (error: unknown) {
+      const { code, message } = readError(error);
+      console.error("[AUTH] sign-in failed:", code);
+      setAuthError(message);
     }
   };
 
@@ -170,8 +219,10 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
       setAuthError('');
       await signInAnonymously(auth);
       setShowAuth(false);
-    } catch (error: any) {
-      console.log(error); setAuthError(error.code + ": " + error.message);
+    } catch (error: unknown) {
+      const { code, message } = readError(error);
+      console.error("[AUTH] anonymous sign-in failed:", code);
+      setAuthError(code + ": " + message);
     }
   };
 
@@ -180,12 +231,13 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
       setAuthError('');
       try {
         await signInWithEmailAndPassword(auth, email, password);
-      } catch (e: any) {
-        if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+      } catch (e: unknown) {
+        const { code } = readError(e);
+        if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
           try {
             await createUserWithEmailAndPassword(auth, email, password);
-          } catch (createErr: any) {
-            if (createErr.code === 'auth/email-already-in-use') {
+          } catch (createErr: unknown) {
+            if (readError(createErr).code === 'auth/email-already-in-use') {
               throw new Error("Invalid password for this account.");
             }
             throw createErr;
@@ -195,13 +247,49 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
         }
       }
       setShowAuth(false);
-    } catch (error: any) {
-      console.log(error); setAuthError(error.code + ": " + error.message);
+    } catch (error: unknown) {
+      const { code, message } = readError(error);
+      console.error("[AUTH] email auth failed:", code);
+      setAuthError(code + ": " + message);
     }
   };
 
   const handleLogout = async () => {
+    const uid = auth.currentUser?.uid;
     await signOut(auth);
+    if (uid) localStorage.removeItem(`umetv_profile_${uid}`);
+  }
+
+  const handleDeleteAccount = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const confirmed = window.confirm(
+      "Delete your UmeTV account and profile? This permanently removes your profile data. Moderation reports may be retained for safety/legal purposes."
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, "users", user.uid));
+      try {
+        await deleteDoc(doc(db, "blocks", user.uid));
+      } catch {
+        // Block documents may be protected by server-side/admin rules.
+      }
+      localStorage.removeItem(`umetv_profile_${user.uid}`);
+      await deleteUser(user);
+      setShowProfile(false);
+      setProfileData({ name: "", age: "", gender: "", interests: [] });
+      setIsLoggedIn(false);
+    } catch (error: unknown) {
+      const { code } = readError(error);
+      console.error("[ACCOUNT] Delete failed:", code);
+      setAuthError(
+        code === "auth/requires-recent-login"
+          ? "For security, please sign in again before deleting your account."
+          : "We could not delete your account. Please try again."
+      );
+    }
   }
 
   useEffect(() => {
@@ -218,7 +306,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     };
     
     fetchCount();
-    const interval = setInterval(fetchCount, 5000);
+    const interval = setInterval(fetchCount, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -543,6 +631,12 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                  className="w-full mt-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors"
                >
                  Edit Profile
+               </button>
+               <button
+                 onClick={handleDeleteAccount}
+                 className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-colors"
+               >
+                 Delete Account
                </button>
             </div>
           </div>

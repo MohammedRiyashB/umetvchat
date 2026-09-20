@@ -1,0 +1,17 @@
+{
+  "name": "UmeTV",
+  "short_name": "UmeTV",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "description": "Random video and text chat with WebRTC and real-time messaging.",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

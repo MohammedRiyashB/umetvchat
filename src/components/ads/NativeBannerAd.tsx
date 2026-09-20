@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 
 export default function NativeBannerAd() {
   const initialized = useRef(false);
+  const scriptRef = useRef<HTMLScriptElement | null>(null);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -14,10 +15,13 @@ export default function NativeBannerAd() {
     
     // Append to document head or body to ensure it runs correctly and finds the container by ID.
     document.body.appendChild(script);
+    scriptRef.current = script;
 
     return () => {
-      // We don't remove the script or container to prevent breakage on hot reloads, 
-      // but the container will be destroyed by React unmount.
+      scriptRef.current?.remove();
+      scriptRef.current = null;
+      document.getElementById('container-87106db52e0e59eee0b724e9ae7679fb')?.replaceChildren();
+      initialized.current = false;
     };
   }, []);
 

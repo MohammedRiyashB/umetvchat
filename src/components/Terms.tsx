@@ -29,24 +29,27 @@ export default function Terms() {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 md:p-12 prose prose-slate max-w-none">
           <h2 className="text-4xl font-black text-slate-900 mb-8 border-b border-slate-200 pb-4">Terms of Service</h2>
           <div className="prose prose-slate max-w-none text-slate-700 font-medium leading-relaxed space-y-6">
-            <p><strong>Effective Date:</strong> August 2026</p>
+            <p><strong>Effective Date:</strong> September 20, 2026</p>
             <p>
               Welcome to Ume Tv, operated by BMR inc. By accessing or using our website and services, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
             </p>
             
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">1. Acceptance of Terms</h3>
-            <p>UmeTV is intended only for users aged 18 years or older. By accessing our platform, you confirm that you are at least 18 years of age. You are not permitted to use UmeTV if you are under 18 years of age.</p>
+            <p>UmeTV is intended only for users aged 18 years or older. The service requires a valid date of birth in the user's profile and the server checks the declared age before matchmaking. Users remain responsible for providing truthful information.</p>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">2. User Conduct</h3>
             <p>You agree to use Ume Tv strictly in accordance with our Community Rules. You are solely responsible for your conduct and any data, text, information, usernames, graphics, photos, profiles, audio and video clips, links that you submit, post, and display on Ume Tv.</p>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">3. Moderation and Enforcement</h3>
-            <p>We reserve the right, but have no obligation, to monitor disputes between you and other users. We reserve the right to ban users, terminate access, or remove content at our sole discretion, without prior notice, for any violation of these terms.</p>
+            <p>We provide reporting and blocking tools and may use automated abuse protections, rate limits, and moderation records to enforce these Terms. We may restrict, suspend, or terminate access for violations, abuse, fraud, spam, or attempts to circumvent safety controls.</p>
 
-            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">4. Disclaimers</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">4. Privacy and Data</h3>
+            <p>Our collection and use of account, profile, safety, and technical information are described in the Privacy Policy. UmeTV does not intentionally record video or audio conversations.</p>
+
+            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">5. Disclaimers</h3>
             <p>The service is provided "as is" and "as available". BMR inc. makes no warranties, expressed or implied, regarding the continuous availability or reliability of the service.</p>
 
-            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">5. Limitation of Liability</h3>
+            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">6. Limitation of Liability</h3>
             <p>In no event shall BMR inc. or its founder be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the service.</p>
           </div>
 

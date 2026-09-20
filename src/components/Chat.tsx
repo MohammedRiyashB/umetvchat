@@ -1,10 +1,13 @@
+import { v4 as uuidv4 } from "uuid";
 import React, { useEffect, useRef, useState } from 'react';
-import { auth } from "../lib/firebase";
+import { appCheck, auth } from "../lib/firebase";
+import { getToken as getAppCheckToken } from "firebase/app-check";
 import { io, Socket } from 'socket.io-client';
 import { Send, Video, VideoOff, Minimize2, Maximize2, Mic, MicOff, Play, Square, SkipForward, AlertTriangle, MessageSquare, Smile, Gamepad2 } from 'lucide-react';
 import Banner320x50Ad from './ads/Banner320x50Ad';
 import GameSelector from './games/GameSelector';
 import GamePanel from './games/GamePanel';
+import type { GameAction, GameState, GameSyncEvent } from './games/gameTypes';
 import SEO from "./SEO";
 import GestureTutorialOverlay from "./GestureTutorialOverlay";
 
@@ -12,7 +15,7 @@ import GestureTutorialOverlay from "./GestureTutorialOverlay";
 
 import { useHandGesture } from "../hooks/useHandGesture";
 
-let ICE_SERVERS: any = {
+let ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
@@ -22,6 +25,21 @@ let ICE_SERVERS: any = {
   ],
   iceCandidatePoolSize: 10,
 };
+
+type WebRtcConfig = RTCConfiguration;
+type GameStartedPayload = {
+  gameId: string;
+  gameType: string;
+  role: 'host' | 'guest';
+  state?: GameState;
+};
+type GameSyncPayload = {
+  state: GameState;
+  version: number;
+  turn: string;
+};
+type GameErrorPayload = { message?: string };
+type GameActionPayload = Record<string, unknown>;
 
 type AppState = 'IDLE' | 'WAITING' | 'CONNECTED';
 
@@ -51,7 +69,7 @@ export default function Chat({ onBack }: ChatProps) {
   const [activeGameId, setActiveGameId] = useState<string | null>(null);
   const [gameVersion, setGameVersion] = useState<number>(0);
   const [gameRole, setGameRole] = useState<'host' | 'guest' | null>(null);
-  const [incomingGameEvent, setIncomingGameEvent] = useState<any>(null);
+  const [incomingGameEvent, setIncomingGameEvent] = useState<GameSyncEvent | null>(null);
   const [hasVideo, setHasVideo] = useState(true);
   const [hasAudio, setHasAudio] = useState(true);
   const [mediaError, setMediaError] = useState(false);
@@ -124,8 +142,12 @@ export default function Chat({ onBack }: ChatProps) {
       }
 
       let token: string;
+      let appCheckToken: string | undefined;
       try {
         token = await user.getIdToken(true);
+        if (appCheck) {
+          appCheckToken = (await getAppCheckToken(appCheck, false)).token;
+        }
         console.log("[UmeTV Auth] Firebase ID token obtained");
       } catch (error) {
         if (!isMounted) return;
@@ -139,7 +161,7 @@ export default function Chat({ onBack }: ChatProps) {
       const socket = io(import.meta.env.VITE_SOCKET_URL || "", {
         path: "/socket.io",
         transports: ["websocket", "polling"],
-        auth: { token },
+        auth: { token, appCheckToken },
         autoConnect: false,
         reconnection: true,
         reconnectionAttempts: Infinity,
@@ -150,23 +172,21 @@ export default function Chat({ onBack }: ChatProps) {
 
       const joinQueue = () => {
         if (!socketRef.current) return;
-        const profileString = localStorage.getItem(`umetv_profile_${user.uid}`);
-        let profile = null;
-        if (profileString) {
-          try {
-            profile = JSON.parse(profileString);
-          } catch (e) {}
-        }
-        socketRef.current.emit('join_queue', profile);
+        socketRef.current.emit('join_queue');
       };
 
       socket.on('connect_error', async (error) => {
         console.error('[UmeTV Socket] connect_error:', error.message);
-        if (error.message === "invalid_token" || error.message === "authentication_required") {
+        if (error.message === "invalid_token" || error.message === "authentication_required" || error.message === "app_check_required") {
             if (auth.currentUser) {
                 try {
-                    const token = await auth.currentUser.getIdToken(true);
-                    socket.auth = { token };
+                    const refreshedAuth: { token: string; appCheckToken?: string } = {
+                      token: await auth.currentUser.getIdToken(true),
+                    };
+                    if (appCheck) {
+                      refreshedAuth.appCheckToken = (await getAppCheckToken(appCheck, true)).token;
+                    }
+                    socket.auth = refreshedAuth;
                     socket.connect();
                     return;
                 } catch (e) {
@@ -181,10 +201,8 @@ export default function Chat({ onBack }: ChatProps) {
         console.warn('[UmeTV Socket] disconnected:', reason);
       });
       
-      socket.on('webrtc_config', (data: any) => {
-        if (data && data.iceServers) {
-           ICE_SERVERS = data;
-        }
+      socket.on('webrtc_config', (data: RTCConfiguration) => {
+        if (Array.isArray(data.iceServers)) ICE_SERVERS = data;
       });
 
       socket.on('connect', () => {
@@ -216,7 +234,7 @@ export default function Chat({ onBack }: ChatProps) {
         setActiveGame(null);
       });
 
-      socket.on('webrtc_offer', async (data: any) => {
+      socket.on('webrtc_offer', async (data: { sessionId: string; sdp?: RTCSessionDescriptionInit }) => {
         if (!data || data.sessionId !== sessionIdRef.current) return;
         const offer = data.sdp || data;
         if (!pcRef.current) await setupPeerConnection(false);
@@ -234,7 +252,7 @@ export default function Chat({ onBack }: ChatProps) {
         }
       });
 
-      socket.on('webrtc_answer', async (data: any) => {
+      socket.on('webrtc_answer', async (data: { sessionId: string; sdp?: RTCSessionDescriptionInit }) => {
         if (!data || data.sessionId !== sessionIdRef.current) return;
         const answer = data.sdp || data;
         try {
@@ -248,11 +266,11 @@ export default function Chat({ onBack }: ChatProps) {
         }
       });
 
-      socket.on('webrtc_ice_candidate', async (data: any) => {
+      socket.on('webrtc_ice_candidate', async (data: { sessionId: string; candidate?: RTCIceCandidateInit }) => {
         if (!data) return;
         const candidate = data.candidate || data;
         const sessionId = data.sessionId;
-        if (sessionId && sessionId !== sessionIdRef.current) return;
+        if (sessionId !== sessionIdRef.current) return;
         try {
             if (pcRef.current) {
                 if (pcRef.current.remoteDescription && pcRef.current.remoteDescription.type) {
@@ -266,9 +284,14 @@ export default function Chat({ onBack }: ChatProps) {
         }
       });
 
-      socket.on('chat_message', (msg: string) => {
-        const text = String(msg).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        setMessages(prev => [...prev, { text, sender: 'partner', timestamp: new Date() }]);
+      socket.on('chat_message', (msg: unknown) => {
+        if (typeof msg !== 'string' || msg.length > 500) return;
+        setMessages(prev => [...prev, { text: msg, sender: 'partner', timestamp: new Date() }]);
+      });
+
+      socket.on('chat_message_blocked', () => {
+        setToastMessage('Message blocked by UmeTV community rules.');
+        setTimeout(() => setToastMessage(''), 3000);
       });
 
       socket.on('chat_reaction', (reaction: string) => {
@@ -277,7 +300,7 @@ export default function Chat({ onBack }: ChatProps) {
 
       socket.on('game_challenge_received', (data: { gameType: string, challengerId: string, challengeId: string }) => {
         setMessages(prev => [...prev, {
-            id: Math.random().toString(),
+            id: uuidv4(),
             sender: 'system',
             text: `Stranger challenged you to a game of ${data.gameType}.`,
             isGameChallenge: true,
@@ -292,21 +315,21 @@ export default function Chat({ onBack }: ChatProps) {
         addSystemMessage('Stranger declined your game invitation.');
       });
 
-      socket.on('game_started', (payload: any) => {
+      socket.on('game_started', (payload: GameStartedPayload) => {
         setActiveGameId(payload.gameId);
         setActiveGame(payload.gameType);
         setGameRole(payload.role);
-        setGameVersion(payload.state?.version || 1);
+        setGameVersion(1);
         addSystemMessage(`Started playing ${payload.gameType}. Have fun!`);
       });
 
-      socket.on('game_sync', (payload: any) => {
+      socket.on('game_sync', (payload: GameSyncPayload) => {
         const isMyTurn = payload.turn === auth.currentUser?.uid;
         setGameVersion(payload.version);
         setIncomingGameEvent({ type: 'sync', state: payload.state, isMyTurn });
       });
 
-      socket.on('game_error', (data: any) => {
+      socket.on('game_error', (data: GameErrorPayload) => {
         addSystemMessage(`Game error: ${data.message}`);
       });
 
@@ -380,7 +403,7 @@ export default function Chat({ onBack }: ChatProps) {
 
 
   const addSystemMessage = (text: string) => {
-    setMessages(prev => [...prev, { id: Math.random().toString(), sender: 'system', text }]);
+    setMessages(prev => [...prev, { id: uuidv4(), sender: 'system', text }]);
   };
 
     const waitForMedia = async (): Promise<MediaStream | null> => {
@@ -407,8 +430,8 @@ export default function Chat({ onBack }: ChatProps) {
     const pc = new RTCPeerConnection(ICE_SERVERS);
     pcRef.current = pc;
 
-    let disconnectTimeout: any;
-    let restartTimeout: any;
+    let disconnectTimeout: ReturnType<typeof setTimeout> | undefined;
+    let restartTimeout: ReturnType<typeof setTimeout> | undefined;
     pc.oniceconnectionstatechange = () => {
       const state = pc.iceConnectionState;
       if (state === 'disconnected') {
@@ -573,19 +596,8 @@ export default function Chat({ onBack }: ChatProps) {
         return;
       }
       
-      const profileString = localStorage.getItem(`umetv_profile_${user.uid}`);
-      let profile = null;
-
-      if (profileString) {
-        try {
-          profile = JSON.parse(profileString);
-        } catch (error) {
-          console.warn("[UmeTV Chat] Invalid stored profile");
-        }
-      }
-
       console.log("[UmeTV Chat] Joining matchmaking queue");
-      socket.emit("join_queue", profile);
+      socket.emit("join_queue");
 
     } catch (error) {
       console.error("[UmeTV Chat] Failed to start chat:", error);
@@ -607,7 +619,15 @@ export default function Chat({ onBack }: ChatProps) {
 
   const reportUser = () => {
     if (!socketRef.current || appState !== 'CONNECTED') return;
-    socketRef.current.emit('report_user');
+    const category = window.prompt(
+      "Why are you reporting this user? Enter: nudity, harassment, spam, scam, or other.",
+      "other"
+    )?.trim().toLowerCase();
+
+    const allowedCategories = new Set(["nudity", "harassment", "spam", "scam", "other"]);
+    const safeCategory = category && allowedCategories.has(category) ? category : "other";
+
+    socketRef.current.emit('report_user', { category: safeCategory });
     socketRef.current.emit('leave_chat');
     cleanupPeerConnection();
     setAppState('IDLE');
@@ -645,7 +665,7 @@ export default function Chat({ onBack }: ChatProps) {
     }
 
     socketRef.current.emit('chat_message', text);
-    setMessages(prev => [...prev, { id: Math.random().toString(), sender: 'me', text }]);
+    setMessages(prev => [...prev, { id: uuidv4(), sender: 'me', text }]);
     setInputText('');
   };
 
@@ -667,7 +687,7 @@ export default function Chat({ onBack }: ChatProps) {
   const sendGameChallenge = (gameId: string) => {
     if (!socketRef.current || appState !== "CONNECTED") return;
     setMessages(prev => [...prev, {
-      id: Math.random().toString(),
+      id: uuidv4(),
       sender: "me",
       text: "I challenged you to a game!",
       isGameChallenge: true,
@@ -697,7 +717,7 @@ export default function Chat({ onBack }: ChatProps) {
     }
   };
 
-  const sendGameEvent = (payload: any) => {
+  const sendGameEvent = (payload: GameAction) => {
     if (socketRef.current && appState === "CONNECTED" && activeGameId) {
       socketRef.current.emit("game_action", {
         ...payload,

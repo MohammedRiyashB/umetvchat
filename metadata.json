@@ -1,6 +1,4 @@
 {
-  "name": "Ume Tv",
-  "description": "A random video chat application featuring real-time WebRTC and Socket.io integration.",
-  "requestFramePermissions": ["camera", "microphone"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "name": "UmeTV",
+  "description": "A browser-first random video and text chat platform with WebRTC, Socket.IO, Firebase authentication and multiplayer icebreaker games."
 }

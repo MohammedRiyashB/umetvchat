@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Matter from 'matter-js';
+import type { CarromState, GameAction, GameSyncEvent } from './gameTypes';
 
 const { Engine, Render, Runner, World, Bodies, Body, Events, Vector, Composite } = Matter;
 
-export default function Carrom({ isHost, sendEvent, incomingEvent }: any) {
+interface CarromProps { isHost: boolean; sendEvent: (payload: GameAction) => void; incomingEvent: GameSyncEvent | null; }
+export default function Carrom({ isHost, sendEvent, incomingEvent }: CarromProps) {
   const sceneRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
@@ -28,7 +30,7 @@ export default function Carrom({ isHost, sendEvent, incomingEvent }: any) {
 
   useEffect(() => {
     if (incomingEvent && incomingEvent.type === "sync") {
-      const state = incomingEvent.state;
+      const state = incomingEvent.state as CarromState;
       if (incomingEvent.isMyTurn !== undefined) setIsMyTurn(incomingEvent.isMyTurn);
       
       if (state.winner) {
@@ -130,7 +132,7 @@ export default function Carrom({ isHost, sendEvent, incomingEvent }: any) {
             if (coin.label === 'striker') {
               // Foul
               sendEvent({ type: 'score', foul: true });
-            } else {
+            } else if (coin.label === 'white' || coin.label === 'black' || coin.label === 'queen') {
               sendEvent({ type: 'score', label: coin.label });
             }
           }
@@ -379,7 +381,7 @@ export default function Carrom({ isHost, sendEvent, incomingEvent }: any) {
 
   useEffect(() => {
     if (incomingEvent && incomingEvent.type === "sync") {
-      const state = incomingEvent.state;
+      const state = incomingEvent.state as CarromState;
       if (incomingEvent.isMyTurn !== undefined) setIsMyTurn(incomingEvent.isMyTurn);
       
       if (state.winner) {

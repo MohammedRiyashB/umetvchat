@@ -29,7 +29,7 @@ export default function PrivacyPolicy() {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 md:p-12 prose prose-slate max-w-none">
           <h2 className="text-4xl font-black text-slate-900 mb-8 border-b border-slate-200 pb-4">Privacy Policy</h2>
           <div className="prose prose-slate max-w-none text-slate-700 font-medium leading-relaxed space-y-6">
-            <p><strong>Effective Date:</strong> August 2026</p>
+            <p><strong>Effective Date:</strong> September 20, 2026</p>
             <p>
               At Ume Tv (operated by BMR inc.), your privacy is of the utmost importance to us. This Privacy Policy outlines the types of information we collect, how it is used, and the steps we take to protect your personal data.
             </p>
@@ -37,25 +37,32 @@ export default function PrivacyPolicy() {
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">1. Information We Collect</h3>
             <ul className="list-disc pl-5 space-y-2">
               <li><strong>Automatically Collected Information:</strong> We may log standard technical information, such as your browser type and operating system, to facilitate the connection between users.</li>
-              <li><strong>Voluntary Information:</strong> If you create a profile, we store your name, age, gender, region, and optional interests in our secure database to facilitate matchmaking and personalize your experience. This data is linked to your account if you choose to sign in.</li>
+              <li><strong>Profile Information:</strong> If you create a profile, we store your name, date of birth, gender, and optional interests in Firestore to support age eligibility and matchmaking. We minimize local browser storage and do not store your date of birth in the local profile cache.</li>
               <li><strong>Camera and Microphone Data:</strong> We require access to your camera and microphone to enable video chatting. <strong>We do not record, store, or intercept your video or audio streams.</strong> Connections are established via WebRTC, meaning data is transmitted peer-to-peer whenever possible.</li>
             </ul>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">2. How We Use Information</h3>
-            <p>The information collected is used solely for the following purposes:</p>
+            <p>The information collected is used for the following purposes:</p>
             <ul className="list-disc pl-5 space-y-2">
               <li>To provide, maintain, and improve the Ume Tv service.</li>
               <li>To enforce our Community Rules by implementing account-level blocking and reporting mechanisms to maintain a safe environment.</li>
-              <li>To monitor general usage statistics (e.g., active user counts) without identifying individual users.</li>
+              <li>To monitor general usage statistics (e.g., active connection counts) and prevent abuse, spam, fraud, and repeated violations.</li>
+              <li>To process user reports and blocks, maintain safety records, and investigate violations of the Community Rules.</li>
             </ul>
 
             <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">3. Data Security</h3>
             <p>We implement industry-standard security measures to protect against unauthorized access to or unauthorized alteration, disclosure, or destruction of data. However, no internet transmission is completely secure, and we cannot guarantee absolute security.</p>
 
-            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">4. Third-Party Services</h3>
-            <p>We do not sell, trade, or otherwise transfer your personally identifiable information to outside parties. This does not include trusted third parties who assist us in operating our website, conducting our business, or servicing you, so long as those parties agree to keep this information confidential.</p>
 
-            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">5. Contact Us</h3>
+
+            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">4. Data Retention and Deletion</h3>
+            <p>Profile data can be deleted through the account settings. Safety and moderation records may be retained for a limited period when reasonably necessary to protect users, prevent abuse, resolve disputes, or comply with legal obligations.</p>
+            <p>Video and audio are not intentionally recorded by UmeTV. WebRTC media is designed to flow directly between participants when network conditions allow; signaling metadata passes through the real-time service.</p>
+
+            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">5. Third-Party Services</h3>
+            <p>We do not sell personal information for money. UmeTV relies on service providers for authentication, hosting, real-time infrastructure, and advertising. Third-party advertising scripts may process information under their own policies, and UmeTV does not control the content of individual ads.</p>
+
+            <h3 className="text-2xl font-bold text-slate-900 mt-8 mb-4">6. Contact Us</h3>
             <p>If you have any questions regarding this Privacy Policy, please contact us at support@umetvchat.web.app.</p>
           </div>
 
