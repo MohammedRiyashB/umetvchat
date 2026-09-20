@@ -17,8 +17,11 @@ test("production authentication cannot silently fall back to mock auth", () => {
 });
 
 test("WebRTC signaling is bound to an active match session", () => {
-  assert.match(server, /matchSessions\.get\(myUid\)/);
-  assert.match(server, /data\.sessionId === matchSessions\.get\(myUid\)/);
+  assert.match(server, /const matchSessions = new Map<string, string>/);
+  assert.match(server, /const getMatchSessionId = async \(uid: string\): Promise<string \| null> => matchSessions\.get\(uid\) \|\| null/);
+  assert.match(server, /data\.sessionId === await getMatchSessionId\(myUid\)/);
+  assert.match(server, /matchSessions\.set\(myUid, sessionId\)/);
+  assert.match(server, /matchSessions\.set\(partnerUid, sessionId\)/);
 });
 
 test("Firestore user profiles are restricted to expected fields", () => {
