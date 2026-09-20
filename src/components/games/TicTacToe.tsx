@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCcw } from 'lucide-react';
+import type { GameAction, GameSyncEvent, TicTacToeState } from './gameTypes';
 
-export default function TicTacToe({ isHost, sendEvent, incomingEvent }: any) {
+interface TicTacToeProps { isHost: boolean; sendEvent: (payload: GameAction) => void; incomingEvent: GameSyncEvent | null; }
+export default function TicTacToe({ isHost, sendEvent, incomingEvent }: TicTacToeProps) {
   const [board, setBoard] = useState(Array(9).fill(null));
   const [winner, setWinner] = useState<string | null>(null);
   const [isMyTurn, setIsMyTurn] = useState(isHost);
 
   useEffect(() => {
     if (incomingEvent && incomingEvent.type === 'sync') {
-      const state = incomingEvent.state;
+      const state = incomingEvent.state as TicTacToeState;
       setBoard(state.board || Array(9).fill(null));
       setWinner(state.winner || null);
       

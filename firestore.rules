@@ -3,14 +3,33 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /users/{userId} {
-      // A signed-in user can access only their own profile.
-      allow read, create, update, delete:
-        if request.auth != null
-        && request.auth.uid == userId;
+    function signedIn() {
+      return request.auth != null;
     }
 
-    // Everything else is denied by default.
+    function ownProfile(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function validProfile(data) {
+      return data.keys().hasOnly(['name', 'age', 'gender', 'interests'])
+        && data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 100
+        && data.age is string
+        && data.age.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && data.gender is string
+        && data.gender in ['male', 'female', 'prefer_not_to_say']
+        && data.interests is list
+        && data.interests.size() <= 20;
+    }
+
+    match /users/{userId} {
+      allow read, delete: if ownProfile(userId);
+      allow create, update: if ownProfile(userId)
+        && validProfile(request.resource.data);
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

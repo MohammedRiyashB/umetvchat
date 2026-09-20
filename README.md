@@ -1,162 +1,138 @@
 # UmeTV
 
-<p align="center">
-  <img src="https://umetvchat.web.app/logo.png" alt="UmeTV Logo" width="120">
-</p>
+<p align="center"><img src="https://umetvchat.web.app/logo.png" alt="UmeTV Logo" width="120"></p>
 
 <h1 align="center">UmeTV</h1>
+<p align="center"><strong>Meet. Talk. Connect.</strong></p>
 
-<p align="center">
-  <strong>Meet. Talk. Connect.</strong>
-</p>
+A real-time random video and text chat platform for meeting new people online.
 
-<p align="center">
-  A real-time random video and text chat platform for meeting new people online.
-</p>
+## 🌐 Production website
 
-<p align="center">
-  <a href="https://umetvchat.web.app/">Live Website</a> •
-  <a href="https://umetvchat.onrender.com/">Backend</a> •
-  <a href="https://github.com/MohammedRiyashB/umetvchat">Repository</a>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/UmeTV-v1.0.0-blue?style=for-the-badge" alt="UmeTV Version">
-  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React">
-  <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/WebRTC-Real--Time-orange?style=for-the-badge" alt="WebRTC">
-  <img src="https://img.shields.io/badge/Socket.IO-4.8-010101?style=for-the-badge&logo=socket.io" alt="Socket.IO">
-</p>
-
----
-
-## 🌐 Live
-
-**UmeTV:**  
 https://umetvchat.web.app/
 
-UmeTV uses Firebase Hosting for the production web application and a Render-hosted Node.js/Socket.IO service for real-time signaling and matchmaking.
+The current branch is **website-first**. Android/Capacitor configuration is intentionally removed.
 
----
+## ✨ Features
 
-## ✨ What is UmeTV?
+- 🎥 Random WebRTC video chat
+- 🎙️ Voice chat with browser echo/noise controls
+- 💬 Real-time text chat and reactions
+- 👤 **Instant guest mode — no login or signup UI required**
+- 🔞 Server-side 18+ age gate before matchmaking
+- 🧠 Interest-based matchmaking
+- 🔄 Next/skip and automatic reconnect handling
+- ⭐ Favorites
+- 🎮 Tic-Tac-Toe, Chess, Hand Cricket and Carrom
+- 🏆 Server-recorded game stats, points, achievements and leaderboard
+- 📶 Network-quality indicator
+- 📉 Low-bandwidth video mode
+- 🔔 Optional browser message notifications
+- 🚩 Reporting and blocking
+- 🛡️ Moderator console with warn/suspend/ban/unban actions
+- 🚫 Server-enforced moderation restrictions
+- 🔐 Firebase Auth + optional App Check
+- 🧪 Security regression tests, dependency audit, TypeScript and production build CI
 
-UmeTV is a real-time social communication platform designed to make meeting new people simple.
+## 👤 Guest mode
 
-Users can enter a random video chat, get matched with another available user, and communicate through:
+Users can start from the main **Start Chatting** button without creating an email/password or Google account. UmeTV creates a Firebase anonymous session behind the scenes so the realtime service still has a stable, revocable identity for abuse prevention, matchmaking blocks, favorites and game statistics.
 
-- 🎥 Live video
-- 🎙️ Real-time voice
-- 💬 Text messaging
-- 😀 Reactions
-- 🎮 Icebreaker games
-- 🔄 Next/skip matching
-- 👤 Guest access
-- 🔐 Google authentication
+A valid date of birth is still required and the realtime server checks the declared age before matchmaking. The date of birth is stored in the protected profile document and is not cached in browser localStorage.
 
-The goal is simple:
+## 🛡️ Safety and moderation
 
-> **Meet new people. Start a conversation. Discover the world.**
+The realtime server validates authenticated sessions, filters disallowed chat content, rate-limits actions, binds WebRTC signaling to the active match session, stores reports, supports blocking, and can enforce moderator bans/suspensions.
 
----
+Set `ADMIN_UIDS` or use Firebase custom claims `admin=true` / `moderator=true` to access `/admin`.
 
-## 🚀 Features
+## 🎮 Games and rankings
 
-### 🎥 Random Video Chat
+The four multiplayer games use server-side state validation. Completed games can update `gameStats`, including wins, losses, draws, points and win streaks. The public leaderboard is exposed at `/stats`.
 
-Connect two users through peer-to-peer WebRTC communication.
+Carrom currently validates shot vectors, turn ownership, score counts and piece limits server-side. Full deterministic server-side Matter.js physics remains a future anti-cheat hardening step because the browser still performs the visual simulation.
 
-### 🎙️ Real-Time Voice
+## 📶 Video reliability
 
-Low-latency browser audio with:
+The realtime backend uses Socket.IO for signaling, matchmaking, chat and game actions. WebRTC carries the actual audio/video directly between browsers. The browser uses public STUN servers; no TURN service is configured.
 
-- Echo cancellation
-- Noise suppression
-- Automatic gain control
-- Mono audio optimization
-- WebRTC audio transmission
+STUN-only WebRTC is intentionally used for the current single-instance deployment. Some restrictive networks may still require TURN in the future.
 
-### 💬 Real-Time Text Chat
+## 🚀 Deployment phases
 
-Send messages instantly through Socket.IO.
-
-### 🔄 Smart Random Matching
-
-The matchmaking server supports:
-
-- Random matching
-- Interest matching
-- Queue management
-- Automatic rematching
-
-
-
-### 🎮 Icebreakers
-
-Built-in conversation starters help users avoid awkward first moments.
-
-### 😀 Reactions
-
-Send quick reactions during conversations.
-
-### 🛡️ Safety & Moderation
-
-UmeTV includes platform-level protections such as:
-
-- Message filtering
+### Phase 1 — Security
+- Token validation
+- App Check support
+- Input validation
 - Rate limiting
-- Report functionality
-- Session cleanup
-- Automatic disconnect handling
-- Community rules
-- Privacy and terms pages
+- WebRTC session binding
+- Server-side chat moderation
+- Report/block persistence
+- Moderator enforcement
 
-### 📱 Responsive Experience
+### Phase 2 — Trust and safety
+- Reports
+- Moderator console
+- Warning/suspension/ban workflow
+- Audit records
+- Duplicate-report throttling
 
-Designed for:
+### Phase 3 — WebRTC quality
+- Reconnect handling
+- TURN configuration
+- Connection quality indicator
+- Low-bandwidth mode
+- Adaptive bitrate controls
+- Browser notification support
 
-- Android
-- iPhone
-- Tablets
-- Desktop
-- Laptop
-- Modern browsers
+### Phase 4 — Games
+- Typed state contracts
+- Server-side move validation
+- Replay protection
+- Game statistics
+- Achievements
+- Leaderboard
+- Rematch lifecycle
 
----
+### Phase 5 — Performance
+- Lazy-loaded game modules
+- Controlled media bitrate
+- 15-second presence polling
+- Static asset caching
+- Mobile browser resource cleanup
 
-# 🏗️ Architecture
+### Phase 6 — Single-instance production
 
-```text
-                         ┌──────────────────────┐
-                         │       UmeTV User     │
-                         │  Mobile / Desktop    │
-                         └──────────┬───────────┘
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │   Firebase Hosting   │
-                         │    React + Vite      │
-                         └──────────┬───────────┘
-                                    │
-                         Socket.IO signaling
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │        Render        │
-                         │ Node.js + Express    │
-                         │      Socket.IO       │
-                         └──────────┬───────────┘
-                                    │
-                         WebRTC signaling
-                                    │
-                    ┌───────────────┴───────────────┐
-                    ▼                               ▼
-             ┌─────────────┐                 ┌─────────────┐
-             │    User A   │◄─── WebRTC ───►│    User B   │
-             │ Camera/Mic  │                 │ Camera/Mic  │
-             └─────────────┘                 └─────────────┘
+- One Render realtime instance
+- In-memory matchmaking, presence, rate limits and game sessions
+- Socket.IO realtime transport
+- STUN-only WebRTC
+- No Redis or TURN service required
 
-                         Firebase Services
-                    ┌────────────┬─────────────┐
-                    │    Auth    │  Firestore  │
-                    └────────────┴─────────────┘
+### Phase 7 — Observability and automation
+- Health/readiness endpoint
+- Structured logs
+- Operational metrics
+- TURN/network quality monitoring
+- Expanded E2E coverage
+
+The current deployment keeps infrastructure intentionally small: Render, Firebase and browser STUN. Redis and TURN are optional future additions and are not required by the current application.
+
+## 🏗️ Architecture
+
+```
+Web browser
+   │
+   ├── Firebase Auth / Firestore
+   │
+   └── Socket.IO
+         │
+     Node + Express
+         ├── Matchmaking
+         ├── WebRTC signaling
+         ├── Chat moderation
+         ├── Game authority
+         └── Moderator API
+```
+
+For the current deployment, keep exactly one realtime Render instance because realtime state is intentionally process-local.

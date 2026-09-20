@@ -1,7 +1,7 @@
 {
-  "name": "react-example",
+  "name": "umetvchat",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -9,12 +9,12 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "security:audit": "npm audit --audit-level=high",
+    "validate:repo": "node scripts/validate-repo.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "^8.5.0",
-    "@capacitor/cli": "^8.5.0",
-    "@capacitor/core": "^8.5.0",
     "@google/genai": "^2.4.0",
     "@mediapipe/tasks-vision": "^1.0.1",
     "@tailwindcss/vite": "^4.1.14",
@@ -22,7 +22,7 @@
     "chess.js": "^1.4.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
-    "express": "^4.21.2",
+    "express": "^5.2.1",
     "express-rate-limit": "^8.6.2",
     "firebase": "^12.17.0",
     "firebase-admin": "^14.2.0",
@@ -35,7 +35,6 @@
     "react": "^19.0.1",
     "react-chessboard": "^5.12.0",
     "react-dom": "^19.0.1",
-    "react-google-recaptcha-v3": "^1.11.0",
     "react-helmet-async": "^3.0.0",
     "react-router-dom": "^7.18.2",
     "socket.io": "^4.8.3",
@@ -50,13 +49,12 @@
     "@types/helmet": "^0.0.48",
     "@types/matter-js": "^0.20.2",
     "@types/node": "^22.14.0",
-    "@types/uuid": "^11.0.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.12",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.4.3"
   },
   "allowScripts": {
     "esbuild@0.25.12": true,
@@ -64,5 +62,10 @@
     "protobufjs@7.6.5": true,
     "@firebase/util@1.15.2": true,
     "@google/genai@2.15.0": true
-  }
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@10.9.8"
 }

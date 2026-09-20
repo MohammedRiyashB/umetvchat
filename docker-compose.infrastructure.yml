@@ -1,0 +1,3 @@
+# UmeTV intentionally does not provision Redis or TURN.
+# Production uses one Render realtime instance and browser STUN for WebRTC.
+services: {}

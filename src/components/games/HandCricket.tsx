@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCcw } from 'lucide-react';
+import type { GameAction, GameSyncEvent, HandCricketState } from './gameTypes';
 
-export default function HandCricket({ isHost, sendEvent, incomingEvent }: any) {
-  const [gameState, setGameState] = useState<any>({});
+interface HandCricketProps { isHost: boolean; sendEvent: (payload: GameAction) => void; incomingEvent: GameSyncEvent | null; }
+export default function HandCricket({ isHost, sendEvent, incomingEvent }: HandCricketProps) {
+  const [gameState, setGameState] = useState<HandCricketState>({
+    inning: 1, p1Role: 'batting', p1Choice: null, p2Choice: null, p1Score: 0, p2Score: 0,
+    target: null, gameOver: false, result: null, round: 1
+  });
   const [myPendingChoice, setMyPendingChoice] = useState<number | null>(null);
 
   useEffect(() => {
     if (incomingEvent && incomingEvent.type === 'sync') {
-      setGameState(incomingEvent.state || {});
+      setGameState(incomingEvent.state as HandCricketState);
       setMyPendingChoice(null);
     }
   }, [incomingEvent]);

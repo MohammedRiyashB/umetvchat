@@ -10,7 +10,7 @@ interface SEOProps {
 
 export default function SEO({ 
   title = "UmeTV - Random Video & Text Chat",
-  description = "UmeTV is the premier random video and text chat platform. Connect instantly with strangers worldwide safely and securely.",
+  description = "UmeTV is a random video and text chat platform with WebRTC video, real-time messaging and multiplayer games.",
   url = "https://umetvchat.web.app/",
   image = "https://umetvchat.web.app/icon.png"
 }: SEOProps) {

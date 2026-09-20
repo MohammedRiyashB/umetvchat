@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import type { GameAction, GameSyncEvent } from './gameTypes';
 const TicTacToe = React.lazy(() => import('./TicTacToe'));
 const Chess = React.lazy(() => import('./Chess'));
 const HandCricket = React.lazy(() => import('./HandCricket'));
@@ -9,8 +10,8 @@ interface GamePanelProps {
   game: string;
   isHost: boolean;
   onExit: () => void;
-  sendEvent: (payload: any) => void;
-  incomingEvent: any | null;
+  sendEvent: (payload: GameAction) => void;
+  incomingEvent: GameSyncEvent | null;
 }
 
 export default function GamePanel({ game, isHost, onExit, sendEvent, incomingEvent }: GamePanelProps) {

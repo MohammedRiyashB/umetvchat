@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Chess as ChessGame } from 'chess.js';
-import { Chessboard } from 'react-chessboard';
+import { Chessboard, type PieceDropHandlerArgs } from 'react-chessboard';
+import type { ChessState, GameAction, GameSyncEvent } from './gameTypes';
 
-export default function Chess({ isHost, sendEvent, incomingEvent }: any) {
+interface ChessProps { isHost: boolean; sendEvent: (payload: GameAction) => void; incomingEvent: GameSyncEvent | null; }
+export default function Chess({ isHost, sendEvent, incomingEvent }: ChessProps) {
   const [game, setGame] = useState(new ChessGame());
   const [winner, setWinner] = useState<string | null>(null);
   const [isMyTurn, setIsMyTurn] = useState(isHost);
@@ -11,7 +13,7 @@ export default function Chess({ isHost, sendEvent, incomingEvent }: any) {
 
   useEffect(() => {
     if (incomingEvent && incomingEvent.type === 'sync') {
-      const state = incomingEvent.state;
+      const state = incomingEvent.state as ChessState;
       if (state.fen) {
         setGame(new ChessGame(state.fen));
       }
@@ -24,7 +26,7 @@ export default function Chess({ isHost, sendEvent, incomingEvent }: any) {
     }
   }, [incomingEvent]);
 
-  const onDrop = ({ sourceSquare, targetSquare, piece }: any) => {
+  const onDrop = ({ sourceSquare, targetSquare, piece }: PieceDropHandlerArgs) => {
     if (!isMyTurn || winner) return false;
 
     const newGame = new ChessGame(game.fen());

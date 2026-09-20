@@ -5,6 +5,6 @@ await build({
   platform: "node",
   format: "cjs",
   packages: "external",
-  sourcemap: true,
+  sourcemap: false,
   outfile: "dist/server.cjs"
 });
