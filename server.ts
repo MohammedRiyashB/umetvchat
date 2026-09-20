@@ -55,13 +55,16 @@ async function startServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://apis.google.com", "https://www.gstatic.com", "https://cdn.jsdelivr.net"],
+        scriptSrc: ["'self'", "https://apis.google.com", "https://www.gstatic.com", "https://cdn.jsdelivr.net", "https://www.google.com"],
         connectSrc: ["'self'", "wss:", "ws:", "https://*.firebaseio.com", "https://*.googleapis.com", "https://securetoken.googleapis.com", "https://identitytoolkit.googleapis.com", "https://cdn.jsdelivr.net", "https://storage.googleapis.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:", "https://*.googleusercontent.com"],
         mediaSrc: ["'self'", "blob:"],
         workerSrc: ["'self'", "blob:", "https://cdn.jsdelivr.net"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
         frameSrc: ["'self'", "https://*.firebaseapp.com"],
         frameAncestors: ["'self'", "https://aistudio.google.com", "https://*.aistudio.google.com", "https://*.google.com"]
       }
@@ -1138,6 +1141,8 @@ async function startServer() {
     const token = await getHttpUser(req);
     if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
     if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
+    const requestedStatus = typeof req.query.status === "string" ? req.query.status : "open";
+    const statusFilter = ["open", "resolved", "dismissed"].includes(requestedStatus) ? requestedStatus : "open";
     try {
       const snapshot = await getFirestore().collection("reports").limit(100).get();
       const reports = snapshot.docs.map((docSnap) => {
@@ -1145,8 +1150,9 @@ async function startServer() {
         const createdAt = data.createdAt && typeof data.createdAt.toDate === "function" ? data.createdAt.toDate().toISOString() : null;
         return { id: docSnap.id, reporterId: typeof data.reporterId === "string" ? data.reporterId : "", reportedUserId: typeof data.reportedUserId === "string" ? data.reportedUserId : "", category: typeof data.category === "string" ? data.category : "other", status: typeof data.status === "string" ? data.status : "open", createdAt };
       });
-      reports.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
-      res.json({ reports });
+      const filteredReports = reports.filter((report) => report.status === statusFilter);
+      filteredReports.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      res.json({ reports: filteredReports });
     } catch (error) { console.error("[MODERATION] reports lookup failed", error); res.status(500).json({ error: "lookup_failed" }); }
   });
 
@@ -1206,6 +1212,9 @@ async function startServer() {
     else { moderationUpdate.lastWarningAt = FieldValue.serverTimestamp(); }
     await moderationRef.set(moderationUpdate, { merge: true });
     await actionRef.set({ targetUid, moderatorUid: token.uid, action, reason, durationMinutes: action === "suspend" ? durationMinutes : null, createdAt: FieldValue.serverTimestamp() });
+    if (action === "warn") {
+      io.in(targetUid).emit("moderation_notice", { message: "A moderator issued a warning on your account. Please follow the UmeTV Community Rules." });
+    }
     if (action === "ban" || action === "suspend") {
       io.in(targetUid).emit("moderation_notice", { message: action === "ban" ? "Your account has been banned by a moderator." : "Your account has been temporarily suspended for " + durationMinutes + " minutes." });
       io.in(targetUid).disconnectSockets(true);
