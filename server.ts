@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { createClient } from "redis";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { Chess } from "chess.js";
@@ -106,6 +108,49 @@ async function startServer() {
       skipMiddlewares: false,
     }
   });
+
+  // Redis is the shared realtime backbone for multi-instance deployments.
+  // Render Key Value is Redis-compatible Valkey and exposes a private internal URL
+  // to services in the same region.
+  const redisUrl = process.env.REDIS_URL?.trim();
+  const redisRequired = process.env.REDIS_REQUIRED_FOR_MULTI_INSTANCE === "true";
+  let redisReady = false;
+  const redisPubClient = redisUrl ? createClient({ url: redisUrl }) : null;
+  const redisSubClient = redisPubClient ? redisPubClient.duplicate() : null;
+  const redisStateClient = redisPubClient ? redisPubClient.duplicate() : null;
+
+  if (redisPubClient && redisSubClient && redisStateClient) {
+    const onRedisError = (error: unknown) => {
+      console.error("[Redis] connection error:", error instanceof Error ? error.message : error);
+    };
+    redisPubClient.on("error", onRedisError);
+    redisSubClient.on("error", onRedisError);
+    redisStateClient.on("error", onRedisError);
+    try {
+      await Promise.all([
+        redisPubClient.connect(),
+        redisSubClient.connect(),
+        redisStateClient.connect(),
+      ]);
+      io.adapter(createAdapter(redisPubClient, redisSubClient));
+      redisReady = true;
+      console.log("[Redis] connected; Socket.IO Redis adapter enabled");
+    } catch (error) {
+      console.error("[Redis] startup connection failed:", error instanceof Error ? error.message : error);
+      await Promise.allSettled([
+        redisPubClient.close(),
+        redisSubClient.close(),
+        redisStateClient.close(),
+      ]);
+      if (redisRequired) {
+        throw new Error("REDIS_REQUIRED_FOR_MULTI_INSTANCE is enabled but Redis is unavailable");
+      }
+    }
+  } else if (redisRequired) {
+    throw new Error("REDIS_REQUIRED_FOR_MULTI_INSTANCE is enabled but REDIS_URL is missing");
+  } else {
+    console.warn("[Redis] REDIS_URL not configured; using single-instance in-memory realtime state");
+  }
     
   const PORT = Number(process.env.PORT) || 3000;
   const ADMIN_UIDS = new Set((process.env.ADMIN_UIDS || "").split(",").map((value) => value.trim()).filter(Boolean));
@@ -201,6 +246,38 @@ async function startServer() {
   const blockedUsers = new Map<string, Set<string>>();
   const disconnectTimers = new Map<string, NodeJS.Timeout>();
   const onlineUserIds = new Set<string>();
+  const REDIS_PRESENCE_COUNTS_KEY = "umetv:presence:counts";
+  const markUserOnline = async (uid: string) => {
+    onlineUserIds.add(uid);
+    if (!redisReady || !redisStateClient) return onlineUserIds.size;
+    try {
+      await redisStateClient.hIncrBy(REDIS_PRESENCE_COUNTS_KEY, uid, 1);
+      return Number(await redisStateClient.hLen(REDIS_PRESENCE_COUNTS_KEY));
+    } catch (error) {
+      console.error("[Redis] presence add failed:", error instanceof Error ? error.message : error);
+      return onlineUserIds.size;
+    }
+  };
+  const markUserOffline = async (uid: string) => {
+    onlineUserIds.delete(uid);
+    if (!redisReady || !redisStateClient) return onlineUserIds.size;
+    try {
+      const remaining = await redisStateClient.hIncrBy(REDIS_PRESENCE_COUNTS_KEY, uid, -1);
+      if (remaining <= 0) await redisStateClient.hDel(REDIS_PRESENCE_COUNTS_KEY, uid);
+      return Number(await redisStateClient.hLen(REDIS_PRESENCE_COUNTS_KEY));
+    } catch (error) {
+      console.error("[Redis] presence remove failed:", error instanceof Error ? error.message : error);
+      return onlineUserIds.size;
+    }
+  };
+  const getOnlineUserCount = async () => {
+    if (!redisReady || !redisStateClient) return onlineUserIds.size;
+    try {
+      return Number(await redisStateClient.hLen(REDIS_PRESENCE_COUNTS_KEY));
+    } catch {
+      return onlineUserIds.size;
+    }
+  };
   const metrics = {
     matches: 0,
     messages: 0,
@@ -238,8 +315,20 @@ async function startServer() {
   // causing inconsistent matchmaking, broken games, and ineffective rate limiting. 
   // To support multi-instance scaling, migrate this state to Redis (via Render Redis) or Firestore.
   const globalRateLimits = new Map<string, { count: number, lastReset: number }>();
-  const checkRateLimit = (uid: string, action: string, limit: number, windowMs: number = 5000) => {
-      const key = uid + '_' + action;
+  const checkRateLimit = async (uid: string, action: string, limit: number, windowMs: number = 5000) => {
+      const key = uid + "_" + action;
+      if (redisReady && redisStateClient) {
+        try {
+          const redisKey = "umetv:ratelimit:" + key;
+          const count = await redisStateClient.incr(redisKey);
+          if (count === 1) {
+            await redisStateClient.expire(redisKey, Math.max(1, Math.ceil(windowMs / 1000)));
+          }
+          return count > limit;
+        } catch (error) {
+          console.error("[Redis] rate-limit operation failed; falling back locally:", error instanceof Error ? error.message : error);
+        }
+      }
       const now = Date.now();
       let record = globalRateLimits.get(key);
       if (!record) {
@@ -258,7 +347,7 @@ async function startServer() {
 
   io.use(async (socket, next) => {
     const ipKey = `ip:${socket.handshake.address || "unknown"}`;
-    if (checkRateLimit(ipKey, "socket_connect", 30, 60 * 1000)) {
+    if (await checkRateLimit(ipKey, "socket_connect", 30, 60 * 1000)) {
       return next(new Error("rate_limited"));
     }
 
@@ -340,7 +429,7 @@ async function startServer() {
     const restriction = await getActiveRestriction(myUid);
     if (restriction) return socket.disconnect(true);
     socket.join(myUid);
-    onlineUserIds.add(myUid);
+    const onlineCount = await markUserOnline(myUid);
 
     // Initialize block cache if not present
     if (firebaseAdminInitialized && !blockedUsers.has(myUid)) {
@@ -372,7 +461,7 @@ async function startServer() {
     });
 
     console.log("TOTAL CONNECTED:", io.engine.clientsCount, "User:", myUid);
-    io.emit("online_users_count", onlineUserIds.size);
+    io.emit("online_users_count", onlineCount);
 
     if (disconnectTimers.has(myUid)) {
       clearTimeout(disconnectTimers.get(myUid)!);
@@ -408,7 +497,7 @@ async function startServer() {
 
     socket.on("join_queue", async () => {
       console.log("[MATCHMAKING] join_queue received:", myUid);
-      if (checkRateLimit(myUid, 'join_queue', 5)) return;
+      if (await checkRateLimit(myUid, 'join_queue', 5)) return;
 
       let profile: UserProfile | null = null;
       if (firebaseAdminInitialized) {
@@ -515,18 +604,18 @@ async function startServer() {
       socket.emit("waiting");
     });
 
-    socket.on("webrtc_offer", (data: unknown) => {
-      if (!isValidSdpSignal(data) || checkRateLimit(myUid, "webrtc_offer", 20)) return;
+    socket.on("webrtc_offer", async (data: unknown) => {
+      if (!isValidSdpSignal(data) || await checkRateLimit(myUid, "webrtc_offer", 20)) return;
       const partnerId = users[myUid];
       if (partnerId && data.sessionId === matchSessions.get(myUid)) { metrics.webRtcOffers++; io.to(partnerId).emit("webrtc_offer", data); }
     });
-    socket.on("webrtc_answer", (data: unknown) => {
-      if (!isValidSdpSignal(data) || checkRateLimit(myUid, "webrtc_answer", 20)) return;
+    socket.on("webrtc_answer", async (data: unknown) => {
+      if (!isValidSdpSignal(data) || await checkRateLimit(myUid, "webrtc_answer", 20)) return;
       const partnerId = users[myUid];
       if (partnerId && data.sessionId === matchSessions.get(myUid)) { metrics.webRtcAnswers++; io.to(partnerId).emit("webrtc_answer", data); }
     });
-    socket.on("webrtc_ice_candidate", (data: unknown) => {
-      if (!isValidIceSignal(data) || checkRateLimit(myUid, "webrtc_ice", 60)) return;
+    socket.on("webrtc_ice_candidate", async (data: unknown) => {
+      if (!isValidIceSignal(data) || await checkRateLimit(myUid, "webrtc_ice", 60)) return;
       const partnerId = users[myUid];
       if (partnerId && data.sessionId === matchSessions.get(myUid)) { metrics.webRtcIce++; io.to(partnerId).emit("webrtc_ice_candidate", data); }
     });
@@ -541,7 +630,7 @@ async function startServer() {
     });
     socket.on("favorite_user", async () => {
       const partnerId = users[myUid];
-      if (!partnerId || !firebaseAdminInitialized || checkRateLimit(myUid, "favorite", 10, 60000)) return;
+      if (!partnerId || !firebaseAdminInitialized || await checkRateLimit(myUid, "favorite", 10, 60000)) return;
       try {
         await getFirestore().collection("favorites").doc(myUid).set({ userIds: FieldValue.arrayUnion(partnerId), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         metrics.favoriteAdds++;
@@ -550,7 +639,7 @@ async function startServer() {
     });
     socket.on("unfavorite_user", async () => {
       const partnerId = users[myUid];
-      if (!partnerId || !firebaseAdminInitialized || checkRateLimit(myUid, "favorite", 10, 60000)) return;
+      if (!partnerId || !firebaseAdminInitialized || await checkRateLimit(myUid, "favorite", 10, 60000)) return;
       try {
         await getFirestore().collection("favorites").doc(myUid).set({ userIds: FieldValue.arrayRemove(partnerId), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         socket.emit("favorite_status", { favorite: false });
@@ -562,8 +651,8 @@ async function startServer() {
       const partnerId = users[myUid];
       if (partnerId) io.to(partnerId).emit("chat_reaction", reaction);
     });
-    socket.on("chat_message", (rawMsg) => {
-       if (checkRateLimit(myUid, 'chat', 10, 5000)) return;
+    socket.on("chat_message", async (rawMsg) => {
+       if (await checkRateLimit(myUid, 'chat', 10, 5000)) return;
        if (typeof rawMsg !== "string") return;
        const msg = rawMsg.trim();
        if (!msg || msg.length > 500) return;
@@ -581,8 +670,8 @@ async function startServer() {
        }
     });
 
-    socket.on("game_challenge", (payload: unknown) => {
-      if (checkRateLimit(myUid, 'challenge', 5, 10000) || !isPlainObject(payload)) return;
+    socket.on("game_challenge", async (payload: unknown) => {
+      if (await checkRateLimit(myUid, 'challenge', 5, 10000) || !isPlainObject(payload)) return;
       const gameType = payload.gameType;
       if (typeof gameType !== "string" || gameType.length > 32 || !ALLOWED_GAMES.includes(gameType)) return;
       const partnerId = users[myUid];
@@ -661,7 +750,7 @@ async function startServer() {
       cleanupGame(myUid);
     });
     socket.on("game_action", async (action: unknown) => {
-      if (checkRateLimit(myUid, 'game_action', 20, 1000) || !isGameActionPayload(action)) return;
+      if (await checkRateLimit(myUid, 'game_action', 20, 1000) || !isGameActionPayload(action)) return;
       const gameId = userGames[myUid];
       if (!gameId) return;
       const game = games[gameId];
@@ -689,7 +778,7 @@ async function startServer() {
       }
     });
     socket.on("report_user", async (payload: unknown) => {
-      if (checkRateLimit(myUid, 'report', 3, 10000)) return;
+      if (await checkRateLimit(myUid, 'report', 3, 10000)) return;
       const partnerId = users[myUid];
       if (!partnerId) return;
 
@@ -698,7 +787,7 @@ async function startServer() {
         ? payload.category
         : "other";
       const duplicateReportKey = myUid + ":" + partnerId + ":" + category;
-      if (checkRateLimit(duplicateReportKey, "duplicate_report", 1, 10 * 60 * 1000)) return;
+      if (await checkRateLimit(duplicateReportKey, "duplicate_report", 1, 10 * 60 * 1000)) return;
       
       if (!blockedUsers.has(myUid)) blockedUsers.set(myUid, new Set());
       blockedUsers.get(myUid)!.add(partnerId);
@@ -767,6 +856,8 @@ async function startServer() {
         delete users[myUid];
         matchSessions.delete(myUid);
         disconnectTimers.delete(myUid);
+        const onlineCount = await markUserOffline(myUid);
+        io.emit("online_users_count", onlineCount);
       }, 15000);
       disconnectTimers.set(myUid, timer);
     });
@@ -1182,7 +1273,7 @@ async function startServer() {
   app.get("/api/admin/stats", async (req, res) => {
     const token = await getHttpUser(req);
     if (!token || !isModeratorToken(token)) return res.status(403).json({ error: "moderator_required" });
-    res.json({ onlineUsers: onlineUserIds.size, queueLength: queue.length, activeGames: Object.keys(games).length, connectedSockets: io.engine.clientsCount, metrics });
+    res.json({ onlineUsers: await getOnlineUserCount(), queueLength: queue.length, activeGames: Object.keys(games).length, connectedSockets: io.engine.clientsCount, redisReady, metrics });
   });
 
   app.get("/api/admin/metrics", async (req, res) => {
@@ -1223,7 +1314,7 @@ async function startServer() {
     res.json({ ok: true, action, targetUid });
   });
 
-  app.get("/api/health", pageLimiter, (_req, res) => {
+  app.get("/api/health", pageLimiter, async (_req, res) => {
     const ready = firebaseAdminInitialized || (process.env.NODE_ENV !== "production" && process.env.ALLOW_MOCK_AUTH === "true");
     res.status(ready ? 200 : 503).json({
       status: ready ? "ok" : "not_ready",
@@ -1231,13 +1322,14 @@ async function startServer() {
       uptimeSeconds: Math.floor(process.uptime()),
       firebaseAdmin: firebaseAdminInitialized,
       connectedSockets: io.engine.clientsCount,
-      onlineUsers: onlineUserIds.size,
+      onlineUsers: await getOnlineUserCount(),
       queueLength: queue.length,
+      redisReady,
       metrics,
     });
   });
 
-  app.get("/api/online_users", (_req, res) => res.json({ count: onlineUserIds.size }));
+  app.get("/api/online_users", async (_req, res) => res.json({ count: await getOnlineUserCount() }));
 
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
@@ -1250,7 +1342,12 @@ async function startServer() {
   
   const shutdown = (signal: string) => {
     console.log(`[SHUTDOWN] Received ${signal}; closing server.`);
-    io.close(() => {
+    io.close(async () => {
+      await Promise.allSettled([
+        redisPubClient?.close(),
+        redisSubClient?.close(),
+        redisStateClient?.close(),
+      ]);
       httpServer.close(() => process.exit(0));
     });
     setTimeout(() => process.exit(1), 10000).unref();
