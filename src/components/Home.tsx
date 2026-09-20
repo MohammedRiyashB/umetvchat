@@ -1,21 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Target, Shield, Globe, Zap, MessageCircle, Coins, X, PlaySquare, LogOut, Heart, BarChart3 } from 'lucide-react';
-import { auth, googleProvider, db } from '../lib/firebase';
-import { deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
+import { Target, Shield, Globe, Zap, MessageCircle, Coins, PlaySquare, Heart, BarChart3 } from 'lucide-react';
+import { auth, db } from '../lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Banner300x250Ad from './ads/Banner300x250Ad';
 import NativeBannerAd from './ads/NativeBannerAd';
 import SEO from './SEO';
 
-import { 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signInAnonymously,
-  onAuthStateChanged,
-  signOut,
-  sendPasswordResetEmail,
-  deleteUser
-} from 'firebase/auth';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 
 interface HomeProps {
@@ -37,15 +28,8 @@ const readError = (error: unknown): { code: string; message: string } => {
 
 export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
   const [onlineCount, setOnlineCount] = useState(0);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [guestMode, setGuestMode] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetMessage, setResetMessage] = useState("");
   const [authError, setAuthError] = useState('');
 
   const [profileData, setProfileData] = useState({
@@ -55,12 +39,10 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     interests: [] as string[]
   });
   
-  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setIsLoggedIn(true);
         setGuestMode(user.isAnonymous);
         // Check profile
         const docRef = doc(db, 'users', user.uid);
@@ -89,7 +71,6 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
           }));
         }
       } else {
-        setIsLoggedIn(false);
         for (const key of Object.keys(localStorage)) {
           if (key.startsWith("umetv_profile_")) localStorage.removeItem(key);
         }
@@ -97,8 +78,6 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     });
     return () => unsubscribe();
   }, []);
-
-  const isGoogle = auth.currentUser && !auth.currentUser.isAnonymous;
 
   const saveProfile = async () => {
     const user = auth.currentUser;
@@ -200,109 +179,6 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     }
   };
 
-  const handlePasswordReset = async () => {
-    if (!resetEmail) {
-      setResetMessage("Please enter your email.");
-      return;
-    }
-    try {
-      await sendPasswordResetEmail(auth, resetEmail);
-      setResetMessage("Password reset email sent! Check your inbox.");
-    } catch (error: unknown) {
-      setResetMessage(readError(error).message);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      setAuthError('');
-      await signInWithPopup(auth, googleProvider);
-      setShowAuth(false);
-    } catch (error: unknown) {
-      const { code, message } = readError(error);
-      console.error("[AUTH] sign-in failed:", code);
-      setAuthError(message);
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    try {
-      setAuthError('');
-      await signInAnonymously(auth);
-      setShowAuth(false);
-    } catch (error: unknown) {
-      const { code, message } = readError(error);
-      console.error("[AUTH] anonymous sign-in failed:", code);
-      setAuthError(code + ": " + message);
-    }
-  };
-
-  const handleEmailAuth = async () => {
-    try {
-      setAuthError('');
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-      } catch (e: unknown) {
-        const { code } = readError(e);
-        if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
-          try {
-            await createUserWithEmailAndPassword(auth, email, password);
-          } catch (createErr: unknown) {
-            if (readError(createErr).code === 'auth/email-already-in-use') {
-              throw new Error("Invalid password for this account.");
-            }
-            throw createErr;
-          }
-        } else {
-          throw e;
-        }
-      }
-      setShowAuth(false);
-    } catch (error: unknown) {
-      const { code, message } = readError(error);
-      console.error("[AUTH] email auth failed:", code);
-      setAuthError(code + ": " + message);
-    }
-  };
-
-  const handleLogout = async () => {
-    const uid = auth.currentUser?.uid;
-    await signOut(auth);
-    if (uid) localStorage.removeItem(`umetv_profile_${uid}`);
-  }
-
-  const handleDeleteAccount = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const confirmed = window.confirm(
-      "Delete your UmeTV account and profile? This permanently removes your profile data. Moderation reports may be retained for safety/legal purposes."
-    );
-    if (!confirmed) return;
-
-    try {
-      await deleteDoc(doc(db, "users", user.uid));
-      try {
-        await deleteDoc(doc(db, "blocks", user.uid));
-      } catch {
-        // Block documents may be protected by server-side/admin rules.
-      }
-      localStorage.removeItem(`umetv_profile_${user.uid}`);
-      await deleteUser(user);
-      setShowProfile(false);
-      setProfileData({ name: "", age: "", gender: "", interests: [] });
-      setIsLoggedIn(false);
-    } catch (error: unknown) {
-      const { code } = readError(error);
-      console.error("[ACCOUNT] Delete failed:", code);
-      setAuthError(
-        code === "auth/requires-recent-login"
-          ? "For security, please sign in again before deleting your account."
-          : "We could not delete your account. Please try again."
-      );
-    }
-  }
-
   useEffect(() => {
     const fetchCount = async () => {
       try {
@@ -385,30 +261,6 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
           </div>
         </h1>
         <div className="flex items-center gap-3">
-          {isLoggedIn ? (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowProfile(true)}
-                className="flex items-center gap-2 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200 transition-colors"
-              >
-                {auth.currentUser?.photoURL ? (
-                  <img src={auth.currentUser.photoURL} alt="Profile" width="24" height="24" className="w-6 h-6 rounded-full" />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center text-xs font-bold">
-                    {profileData.name?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                )}
-                <span className="text-sm font-bold text-slate-700 hidden sm:block">{guestMode ? 'Guest' : (profileData.name || 'Profile')}</span>
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setShowAuth(true)}
-              className="text-sm font-bold text-sky-600 bg-sky-50 hover:bg-sky-100 px-4 py-2 rounded-full border border-sky-200 transition-colors"
-            >
-              Login / Signup
-            </button>
-          )}
           <div className="hidden sm:flex items-center gap-2">
             <button onClick={() => window.location.href = "/stats"} className="p-2 rounded-full hover:bg-slate-100 text-slate-600" title="Stats & leaderboard"><BarChart3 className="w-5 h-5" /></button>
             <button onClick={() => window.location.href = "/favorites"} className="p-2 rounded-full hover:bg-slate-100 text-slate-600" title="Favorites"><Heart className="w-5 h-5" /></button>
@@ -434,126 +286,16 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
         </div>
       )}
 
-      {/* Auth Modal */}
-      {showAuth && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
-            <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-xl font-black text-slate-800">
-                Welcome to Ume Tv
-              </h3>
-              <button 
-                onClick={() => setShowAuth(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-6 flex flex-col gap-4">
-              {authError && (
-                <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg border border-red-100">
-                  {authError}
-                </div>
-              )}
-              
-              <button onClick={handleGoogleLogin} className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold transition-colors flex items-center justify-center gap-3">
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Continue with Google
-              </button>
-              
-              <button onClick={handleGuestLogin} className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">
-                Start instantly — no login required
-              </button>
-              <p className="text-xs text-slate-400 text-center -mt-2">A private anonymous session is created automatically. You still need to confirm you are 18+.</p>
-              
-              <div className="flex items-center gap-2 my-2">
-                <div className="flex-1 h-px bg-slate-200"></div>
-                <div className="text-sm font-semibold text-slate-400">OR</div>
-                <div className="flex-1 h-px bg-slate-200"></div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email" 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
-                />
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password" 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
-                />
-                
-                <div className="flex justify-end">
-                  <button onClick={() => setShowForgotPassword(true)} className="text-sm font-bold text-sky-500 hover:text-sky-600 transition-colors">
-                    Forgot password? Reset
-                  </button>
-                </div>
-
-                <button onClick={handleEmailAuth} className="w-full py-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-bold text-lg transition-all shadow-md mt-2">
-                  Login or Signup
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Forgot Password Modal */}
-      {showForgotPassword && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
-            <div className="p-6 pb-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-xl font-black text-slate-800">
-                Reset Password
-              </h3>
-              <button 
-                onClick={() => { setShowForgotPassword(false); setResetMessage(""); }}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-6 flex flex-col gap-4">
-              {resetMessage && (
-                <div className={`p-3 text-sm font-medium rounded-lg border ${resetMessage.includes("sent") ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-red-600 border-red-100"}`}>
-                  {resetMessage}
-                </div>
-              )}
-              <input 
-                type="email" 
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
-                placeholder="Enter your email" 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
-              />
-              <button onClick={handlePasswordReset} className="w-full py-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-bold text-lg transition-all shadow-md mt-2">
-                Send Reset Link
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Profile Setup Modal */}
       {showProfileSetup && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
             <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50">
               <h3 className="text-xl font-black text-slate-800">
-                {guestMode ? "Start as a Guest" : "Complete Your Profile"}
+                "Quick age confirmation"
               </h3>
               <p className="text-sm text-slate-500 font-medium mt-1">
-                {guestMode ? "No account or signup is required. Confirm your age to continue." : "Tell us a bit about yourself"}
+                "No login or signup is required. Confirm you are 18+ to continue."
               </p>
             </div>
             <div className="p-6 flex flex-col gap-4">
@@ -630,71 +372,6 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
         </div>
       )}
 
-      {showProfile && !showProfileSetup && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col relative">
-            <button 
-                onClick={() => {
-                  setShowProfile(false);
-                  handleLogout();
-                }}
-                className="absolute top-4 left-4 bg-white/50 hover:bg-red-50 rounded-full p-2 transition-colors z-10 group"
-              >
-                <LogOut className="w-5 h-5 text-red-500 group-hover:text-red-600" />
-            </button>
-            <button 
-                onClick={() => setShowProfile(false)}
-                className="absolute top-4 right-4 bg-white/50 hover:bg-slate-100 rounded-full p-2 transition-colors z-10"
-              >
-                <X className="w-5 h-5 text-slate-600" />
-            </button>
-            <div className="p-8 pb-6 flex flex-col items-center bg-gradient-to-b from-sky-50 to-white">
-               {auth.currentUser?.photoURL ? (
-                 <img src={auth.currentUser.photoURL} alt="Profile" width="96" height="96" className="w-24 h-24 rounded-full border-4 border-white shadow-lg mb-4" />
-               ) : (
-                 <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-sky-100 text-sky-600 flex items-center justify-center text-4xl font-black mb-4">
-                   {profileData.name?.[0]?.toUpperCase() || 'U'}
-                 </div>
-               )}
-               <h3 className="text-2xl font-black text-slate-800">{profileData.name || 'Anonymous User'}</h3>
-               
-            </div>
-            
-            <div className="px-8 pb-8 pt-2 flex flex-col gap-4">
-               <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                 <span className="text-sm font-bold text-slate-400">Gender</span>
-                 <span className="text-sm font-bold text-slate-700 capitalize">{profileData.gender || '-'}</span>
-               </div>
-               <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                 <span className="text-sm font-bold text-slate-400">Date of Birth</span>
-                 <span className="text-sm font-bold text-slate-700">{profileData.age || '-'}</span>
-               </div>
-               
-               <div className="flex flex-col gap-2 py-3">
-                 <span className="text-sm font-bold text-slate-400">Interests</span>
-                 <div className="flex flex-wrap gap-2">
-                   {profileData.interests && profileData.interests.length > 0 ? profileData.interests.map(tag => (
-                     <span key={tag} className="bg-sky-50 text-sky-600 border border-sky-100 px-3 py-1 rounded-full text-xs font-bold">{tag}</span>
-                   )) : <span className="text-sm font-medium text-slate-500">No interests selected</span>}
-                 </div>
-               </div>
-               
-               <button 
-                 onClick={() => { setShowProfile(false); setShowProfileSetup(true); }}
-                 className="w-full mt-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors"
-               >
-                 Edit Profile
-               </button>
-               <button
-                 onClick={handleDeleteAccount}
-                 className="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-colors"
-               >
-                 Delete Account
-               </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <main className="flex-1 flex flex-col items-center">
         {currentPage === 'home' && (
