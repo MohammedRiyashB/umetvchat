@@ -122,7 +122,7 @@ async function startServer() {
   const getActiveRestriction = async (uid: string) => {
     if (!firebaseAdminInitialized) return null;
     try {
-      const snap = await getFirestore().collection("moderation").doc(uid).get();
+      const snap = await getFirestore("umetvchat").collection("moderation").doc(uid).get();
       if (!snap.exists) return null;
       const data = snap.data() || {};
       if (data.banned === true) return { type: "banned" as const };
@@ -202,8 +202,8 @@ async function startServer() {
     if (!firebaseAdminInitialized) return false;
     try {
       const [mine, theirs] = await Promise.all([
-        getFirestore().collection("blocks").doc(uid).get(),
-        getFirestore().collection("blocks").doc(partnerUid).get(),
+        getFirestore("umetvchat").collection("blocks").doc(uid).get(),
+        getFirestore("umetvchat").collection("blocks").doc(partnerUid).get(),
       ]);
       return Boolean(
         Array.isArray(mine.data()?.blocked) && mine.data()!.blocked.includes(partnerUid) ||
@@ -346,7 +346,7 @@ async function startServer() {
     // Initialize block cache if not present
     if (firebaseAdminInitialized && !blockedUsers.has(myUid)) {
        try {
-           const blockDoc = await getFirestore().collection('blocks').doc(myUid).get();
+           const blockDoc = await getFirestore("umetvchat").collection('blocks').doc(myUid).get();
            const blocks = blockDoc.exists ? (blockDoc.data()?.blocked || []) : [];
            blockedUsers.set(myUid, new Set(blocks));
        } catch (error) {
@@ -496,7 +496,7 @@ async function startServer() {
       const partnerId = await getMatchedUser(myUid);
       if (!partnerId || !firebaseAdminInitialized) { socket.emit("favorite_status", { favorite: false }); return; }
       try {
-        const snap = await getFirestore().collection("favorites").doc(myUid).get();
+        const snap = await getFirestore("umetvchat").collection("favorites").doc(myUid).get();
         const ids = Array.isArray(snap.data()?.userIds) ? snap.data()?.userIds : [];
         socket.emit("favorite_status", { favorite: ids.includes(partnerId) });
       } catch { socket.emit("favorite_status", { favorite: false }); }
@@ -505,7 +505,7 @@ async function startServer() {
       const partnerId = await getMatchedUser(myUid);
       if (!partnerId || !firebaseAdminInitialized || await checkRateLimit(myUid, "favorite", 10, 60000)) return;
       try {
-        await getFirestore().collection("favorites").doc(myUid).set({ userIds: FieldValue.arrayUnion(partnerId), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        await getFirestore("umetvchat").collection("favorites").doc(myUid).set({ userIds: FieldValue.arrayUnion(partnerId), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         metrics.favoriteAdds++;
         socket.emit("favorite_status", { favorite: true });
       } catch (error) { console.error("[FAVORITES] Failed to save favorite", error); }
@@ -514,7 +514,7 @@ async function startServer() {
       const partnerId = await getMatchedUser(myUid);
       if (!partnerId || !firebaseAdminInitialized || await checkRateLimit(myUid, "favorite", 10, 60000)) return;
       try {
-        await getFirestore().collection("favorites").doc(myUid).set({ userIds: FieldValue.arrayRemove(partnerId), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        await getFirestore("umetvchat").collection("favorites").doc(myUid).set({ userIds: FieldValue.arrayRemove(partnerId), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
         socket.emit("favorite_status", { favorite: false });
       } catch (error) { console.error("[FAVORITES] Failed to remove favorite", error); }
     });
@@ -667,7 +667,7 @@ async function startServer() {
       
       if (firebaseAdminInitialized) {
           try {
-              const firestore = getFirestore();
+              const firestore = getFirestore("umetvchat");
               await firestore.collection('blocks').doc(myUid).set({
                   blocked: FieldValue.arrayUnion(partnerId)
               }, { merge: true });
@@ -800,8 +800,8 @@ async function startServer() {
       { uid: game.player2, result: winner === "draw" ? "draw" : winner === "guest" ? "win" : "loss" },
     ];
     await Promise.all(results.map(async ({ uid, result }) => {
-      const ref = getFirestore().collection("gameStats").doc(uid);
-      await getFirestore().runTransaction(async (tx) => {
+      const ref = getFirestore("umetvchat").collection("gameStats").doc(uid);
+      await getFirestore("umetvchat").runTransaction(async (tx) => {
         const snap = await tx.get(ref);
         const data = snap.exists ? (snap.data() || {}) : {};
         const played = Number(data.played || 0) + 1;
@@ -1038,10 +1038,10 @@ async function startServer() {
     const requestedLimit = Number(req.query.limit);
     const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 20;
     try {
-      const snapshot = await getFirestore().collection("gameStats").limit(200).get();
+      const snapshot = await getFirestore("umetvchat").collection("gameStats").limit(200).get();
       const rows = await Promise.all(snapshot.docs.map(async (docSnap) => {
         const data = docSnap.data() || {};
-        const userSnap = await getFirestore().collection("users").doc(docSnap.id).get();
+        const userSnap = await getFirestore("umetvchat").collection("users").doc(docSnap.id).get();
         const userData = userSnap.exists ? userSnap.data() || {} : {};
         return { name: typeof userData.name === "string" && userData.name ? userData.name : "Guest", played: Number(data.played || 0), wins: Number(data.wins || 0), losses: Number(data.losses || 0), draws: Number(data.draws || 0), points: Number(data.points || 0), bestWinStreak: Number(data.bestWinStreak || 0) };
       }));
@@ -1055,7 +1055,7 @@ async function startServer() {
     if (!token) return res.status(401).json({ error: "authentication_required" });
     if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
     try {
-      const snap = await getFirestore().collection("gameStats").doc(token.uid).get();
+      const snap = await getFirestore("umetvchat").collection("gameStats").doc(token.uid).get();
       const data = snap.exists ? snap.data() || {} : {};
       const wins = Number(data.wins || 0), played = Number(data.played || 0);
       const achievements = [
@@ -1074,10 +1074,10 @@ async function startServer() {
     if (!token) return res.status(401).json({ error: "authentication_required" });
     if (!firebaseAdminInitialized) return res.status(503).json({ error: "service_unavailable" });
     try {
-      const snap = await getFirestore().collection("favorites").doc(token.uid).get();
+      const snap = await getFirestore("umetvchat").collection("favorites").doc(token.uid).get();
       const ids = Array.isArray(snap.data()?.userIds) ? snap.data()!.userIds.filter((id: unknown): id is string => typeof id === "string").slice(0, 100) : [];
       const favorites = await Promise.all(ids.map(async (uid) => {
-        const profileSnap = await getFirestore().collection("users").doc(uid).get();
+        const profileSnap = await getFirestore("umetvchat").collection("users").doc(uid).get();
         const profile = profileSnap.exists ? profileSnap.data() || {} : {};
         return { uid, name: typeof profile.name === "string" && profile.name ? profile.name : "Guest" };
       }));
@@ -1092,7 +1092,7 @@ async function startServer() {
     const targetUid = String(req.params.uid || "").trim();
     if (!/^[A-Za-z0-9_-]{6,128}$/.test(targetUid)) return res.status(400).json({ error: "invalid_user" });
     try {
-      await getFirestore().collection("favorites").doc(token.uid).set({ userIds: FieldValue.arrayRemove(targetUid), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      await getFirestore("umetvchat").collection("favorites").doc(token.uid).set({ userIds: FieldValue.arrayRemove(targetUid), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
       res.json({ ok: true });
     } catch {
       res.status(500).json({ error: "update_failed" });
@@ -1106,7 +1106,7 @@ async function startServer() {
     const requestedStatus = typeof req.query.status === "string" ? req.query.status : "open";
     const statusFilter = ["open", "resolved", "dismissed"].includes(requestedStatus) ? requestedStatus : "open";
     try {
-      const snapshot = await getFirestore().collection("reports").limit(100).get();
+      const snapshot = await getFirestore("umetvchat").collection("reports").limit(100).get();
       const reports = snapshot.docs.map((docSnap) => {
         const data = docSnap.data() || {};
         const createdAt = data.createdAt && typeof data.createdAt.toDate === "function" ? data.createdAt.toDate().toISOString() : null;
@@ -1129,7 +1129,7 @@ async function startServer() {
       return res.status(400).json({ error: "invalid_report_status" });
     }
     try {
-      await getFirestore().collection("reports").doc(reportId).set({
+      await getFirestore("umetvchat").collection("reports").doc(reportId).set({
         status,
         reviewedBy: token.uid,
         reviewedAt: FieldValue.serverTimestamp(),
@@ -1165,8 +1165,8 @@ async function startServer() {
     if (targetUid === token.uid) return res.status(400).json({ error: "cannot_moderate_self" });
     const durationMinutesRaw = Number(payload.durationMinutes);
     const durationMinutes = Number.isFinite(durationMinutesRaw) ? Math.min(Math.max(Math.floor(durationMinutesRaw), 5), 60 * 24 * 30) : 60;
-    const moderationRef = getFirestore().collection("moderation").doc(targetUid);
-    const actionRef = getFirestore().collection("moderationActions").doc(crypto.randomUUID());
+    const moderationRef = getFirestore("umetvchat").collection("moderation").doc(targetUid);
+    const actionRef = getFirestore("umetvchat").collection("moderationActions").doc(crypto.randomUUID());
     const moderationUpdate: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp(), updatedBy: token.uid, lastReason: reason };
     if (action === "ban") { moderationUpdate.banned = true; moderationUpdate.suspendedUntilMs = 0; }
     else if (action === "unban") { moderationUpdate.banned = false; moderationUpdate.suspendedUntilMs = 0; }
