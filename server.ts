@@ -846,7 +846,7 @@ async function startServer() {
       }
 
       console.log("[IDENTITY] User disconnected, starting 15s grace period:", myUid);
-      const timer = setTimeout(() => {
+      const timer = setTimeout(async () => {
         console.log("[IDENTITY] Grace period expired, cleaning up:", myUid);
         cleanupGame(myUid);
         queue = queue.filter(u => u.userId !== myUid);
