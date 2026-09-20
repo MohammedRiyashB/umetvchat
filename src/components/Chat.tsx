@@ -200,7 +200,11 @@ export default function Chat({ onBack }: ChatProps) {
 
       const socket = io(socketUrl, {
         path: "/socket.io",
-        transports: ["websocket", "polling"],
+        transports: ["polling", "websocket"],
+        // Start with HTTP polling for maximum compatibility, then upgrade to WebSocket.
+        // Render supports WebSockets, but some mobile networks/proxies reject the initial upgrade.
+        tryAllTransports: true,
+        upgrade: true,
         auth: { token, appCheckToken },
         autoConnect: false,
         reconnection: true,
@@ -216,7 +220,7 @@ export default function Chat({ onBack }: ChatProps) {
       };
 
       socket.on('connect_error', async (error) => {
-        console.error('[UmeTV Socket] connect_error:', error.message);
+        console.error("[UmeTV Socket] connect_error:", { message: error.message, description: error.description, url: socketUrl });
         if (error.message === "invalid_token" || error.message === "authentication_required" || error.message === "app_check_required" || error.message === "account_restricted") {
             if (auth.currentUser) {
                 try {
