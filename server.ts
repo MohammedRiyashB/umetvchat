@@ -292,7 +292,6 @@ async function startServer() {
         if (restriction) return next(new Error("account_restricted"));
       }
       next();
-    } catch (error) {      next();
     } catch (error) {
       return next(new Error("invalid_token"));
     }
@@ -1081,7 +1080,7 @@ async function startServer() {
         const data = docSnap.data() || {};
         const userSnap = await getFirestore().collection("users").doc(docSnap.id).get();
         const userData = userSnap.exists ? userSnap.data() || {} : {};
-        return { uid: docSnap.id, name: typeof userData.name === "string" && userData.name ? userData.name : "Guest", played: Number(data.played || 0), wins: Number(data.wins || 0), losses: Number(data.losses || 0), draws: Number(data.draws || 0), points: Number(data.points || 0), bestWinStreak: Number(data.bestWinStreak || 0) };
+        return { name: typeof userData.name === "string" && userData.name ? userData.name : "Guest", played: Number(data.played || 0), wins: Number(data.wins || 0), losses: Number(data.losses || 0), draws: Number(data.draws || 0), points: Number(data.points || 0), bestWinStreak: Number(data.bestWinStreak || 0) };
       }));
       rows.sort((a, b) => b.points - a.points || b.wins - a.wins || b.bestWinStreak - a.bestWinStreak);
       res.json({ leaderboard: rows.slice(0, limit) });
@@ -1222,7 +1221,7 @@ async function startServer() {
     res.json({ ok: true, action, targetUid });
   });
 
-  app.get("/api/health", pageLimiter, (_req, res) => {  app.get("/api/health", (_req, res) => {
+  app.get("/api/health", pageLimiter, (_req, res) => {
     const ready = firebaseAdminInitialized || (process.env.NODE_ENV !== "production" && process.env.ALLOW_MOCK_AUTH === "true");
     res.status(ready ? 200 : 503).json({
       status: ready ? "ok" : "not_ready",
