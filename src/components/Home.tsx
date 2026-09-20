@@ -372,7 +372,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
 
       {/* Header */}
       <header className="px-4 sm:px-6 py-1.5 sm:py-2 bg-white border-b border-slate-200 flex justify-between items-center sticky top-0 z-40 shadow-sm">
-        <h1 className="flex items-center gap-2 cursor-pointer" onClick={() => { window.open('https://www.effectivecpmnetwork.com/vjz9xam93?key=e92738b1a6e698a33e71bf7b5bf846bf', '_blank'); onNavigate('home'); }}>
+        <h1 className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('home')}>
           <img src="/icon.png" alt="Ume Tv Logo" width="102" height="72" className="h-10 sm:h-12 w-auto object-contain drop-shadow-sm" onError={(e) => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextElementSibling) { (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'; } }} />
           <div style={{ display: 'none' }} className="items-center gap-2 text-xl sm:text-2xl font-black tracking-tight text-slate-800">
              <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 text-sky-500" />
@@ -393,7 +393,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                     {profileData.name?.[0]?.toUpperCase() || 'U'}
                   </div>
                 )}
-                <span className="text-sm font-bold text-slate-700 hidden sm:block">{profileData.name || 'Profile'}</span>
+                <span className="text-sm font-bold text-slate-700 hidden sm:block">{guestMode ? 'Guest' : (profileData.name || 'Profile')}</span>
               </button>
             </div>
           ) : (
