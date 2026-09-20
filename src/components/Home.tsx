@@ -306,7 +306,12 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_SOCKET_URL || ''}/api/online_users`);
+        const configuredSocketUrl = typeof import.meta.env.VITE_SOCKET_URL === "string"
+          ? import.meta.env.VITE_SOCKET_URL.trim()
+          : "";
+        const socketUrl = configuredSocketUrl
+          || (import.meta.env.DEV ? window.location.origin : "https://umetvchat.onrender.com");
+        const res = await fetch(`${socketUrl}/api/online_users`);
         const data = await res.json();
         if (data.count !== undefined) {
           setOnlineCount(data.count); 
