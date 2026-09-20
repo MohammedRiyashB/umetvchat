@@ -669,15 +669,17 @@ export default function Chat({ onBack }: ChatProps) {
       const dob = typeof profileData?.age === "string" ? profileData.age : "";
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
         setAppState("IDLE");
-        addSystemMessage("Please return to the UmeTV home page and complete your Date of Birth profile before starting chat.");
+        addSystemMessage("Please complete your Date of Birth profile before starting chat.");
         console.warn("[UmeTV Chat] Matchmaking blocked: missing valid profile DOB.");
+        window.setTimeout(onBack, 700);
         return;
       }
 
       const parsedDob = new Date(`${dob}T00:00:00.000Z`);
       if (Number.isNaN(parsedDob.getTime()) || parsedDob.toISOString().slice(0, 10) !== dob) {
         setAppState("IDLE");
-        addSystemMessage("Your Date of Birth is invalid. Please update your profile before starting chat.");
+        addSystemMessage("Your Date of Birth is invalid. Please update your profile.");
+        window.setTimeout(onBack, 700);
         return;
       }
 
@@ -690,6 +692,7 @@ export default function Chat({ onBack }: ChatProps) {
       if (calculatedAge < 18) {
         setAppState("IDLE");
         addSystemMessage("You must be at least 18 years old to use UmeTV.");
+        window.setTimeout(onBack, 700);
         return;
       }
 
