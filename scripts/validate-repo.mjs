@@ -33,3 +33,16 @@ assert.ok(rules.includes("prefer_not_to_say"), "Guest-safe gender option must re
 assert.equal((rules.match(/match \/\{document=\*\*\}/g) || []).length, 1, "Firestore catch-all rule should be singular");
 
 console.log("Repository validation passed.");
+
+const infrastructureFiles = ["docker-compose.infrastructure.yml", "infra/README.md", "render.yaml"];
+for (const file of infrastructureFiles) {
+  assert.ok(fs.existsSync(file), `Missing infrastructure manifest: ${file}`);
+}
+const compose = fs.readFileSync("docker-compose.infrastructure.yml", "utf8");
+assert.ok(compose.includes("redis:7.4-alpine"), "Redis infrastructure image missing");
+assert.ok(compose.includes("coturn/coturn:4.6"), "TURN infrastructure image missing");
+assert.ok(compose.includes("49152-49252"), "TURN relay range missing");
+const render = fs.readFileSync("render.yaml", "utf8");
+for (const key of ["FIREBASE_PROJECT_ID", "FIREBASE_PRIVATE_KEY", "TURN_SERVERS", "REDIS_URL", "ADMIN_UIDS"]) {
+  assert.ok(render.includes("key: " + key), "Render secret missing: " + key);
+}
