@@ -122,32 +122,18 @@ test("server tracks operational metrics", () => {
   assert.match(server, /metrics\.webRtcIce/);
 });
 
-test("Redis infrastructure is wired for shared realtime deployments", () => {
-  assert.match(server, /@socket\.io\/redis-adapter/);
-  assert.match(server, /createAdapter\(redisPubClient, redisSubClient\)/);
-  assert.match(server, /REDIS_URL/);
-  assert.match(server, /REDIS_REQUIRED_FOR_MULTI_INSTANCE/);
-  assert.match(server, /umetv:ratelimit/);
-  assert.match(server, /umetv:presence:counts/);
-  assert.equal(typeof packageJson.dependencies?.["redis"], "string");
-  assert.equal(typeof packageJson.dependencies?.["@socket.io/redis-adapter"], "string");
+test("single-instance realtime architecture has no Redis or TURN dependencies", () => {
+  assert.doesNotMatch(server, /redis|REDIS_/i);
+  assert.doesNotMatch(server, /TURN_SERVERS|TURN_REALM|TURN_USERNAME|TURN_PASSWORD|TURN_EXTERNAL_IP/);
+  assert.doesNotMatch(JSON.stringify(packageJson.dependencies || {}), /redis|socket\.io\/redis-adapter/i);
+  assert.match(server, /stun:stun\.l\.google\.com:19302/);
+  assert.match(server, /const globalRateLimits = new Map/);
 });
 
-test("Redis matchmaking uses a shared queue, distributed lock, and shared match sessions", () => {
-  assert.match(server, /umetv:matchmaking:queue/);
-  assert.match(server, /umetv:matchmaking:entries/);
-  assert.match(server, /umetv:matchmaking:lock/);
-  assert.match(server, /NX: true, PX: REDIS_MATCH_LOCK_TTL_MS/);
-  assert.match(server, /umetv:match:/);
-  assert.match(server, /findSharedMatch/);
-  assert.match(server, /getMatchedUser/);
-  assert.match(server, /getMatchSessionId/);
-  assert.match(server, /zRemRangeByScore/);
-});
-
-test("shared matchmaking cleanup removes queue and match state on leave/report/disconnect", () => {
-  assert.match(server, /removeFromSharedQueue\(myUid\)/);
-  assert.match(server, /clearSharedMatch\(myUid\)/);
-  assert.match(server, /clearSharedMatch\(partnerId\)/);
-  assert.match(server, /setTimeout\(async \(\) =>/);
+test("single-instance infrastructure does not provision Redis or TURN", () => {
+  const compose = fs.readFileSync("docker-compose.infrastructure.yml", "utf8");
+  const render = fs.readFileSync("render.yaml", "utf8");
+  assert.match(compose, /services: \{\}/);
+  assert.doesNotMatch(compose, /redis:|turn:|coturn/i);
+  assert.doesNotMatch(render, /TURN_SERVERS|REDIS_URL|REDIS_REQUIRED_FOR_MULTI_INSTANCE/);
 });
