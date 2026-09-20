@@ -39,10 +39,13 @@ for (const file of infrastructureFiles) {
   assert.ok(fs.existsSync(file), `Missing infrastructure manifest: ${file}`);
 }
 const compose = fs.readFileSync("docker-compose.infrastructure.yml", "utf8");
-assert.ok(compose.includes("redis:7.4-alpine"), "Redis infrastructure image missing");
-assert.ok(compose.includes("coturn/coturn:4.6"), "TURN infrastructure image missing");
-assert.ok(compose.includes("49152-49252"), "TURN relay range missing");
+assert.ok(compose.includes("services: {}"), "Infrastructure compose must remain empty for single-instance deployment");
 const render = fs.readFileSync("render.yaml", "utf8");
-for (const key of ["FIREBASE_PROJECT_ID", "FIREBASE_PRIVATE_KEY", "TURN_SERVERS", "REDIS_URL", "ADMIN_UIDS"]) {
+for (const key of ["FIREBASE_PROJECT_ID", "FIREBASE_PRIVATE_KEY", "ADMIN_UIDS"]) {
   assert.ok(render.includes("key: " + key), "Render secret missing: " + key);
+}
+assert.equal(compose.includes("redis:"), false, "Redis must not be provisioned");
+assert.equal(compose.includes("turn:"), false, "TURN must not be provisioned");
+assert.equal(render.includes("TURN_SERVERS"), false, "TURN must not be configured");
+assert.equal(render.includes("REDIS_URL"), false, "Redis must not be configured");
 }
