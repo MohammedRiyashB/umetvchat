@@ -149,7 +149,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
 
             <div className="text-sm font-semibold text-slate-500 text-center flex items-center justify-center gap-2">
               <span className="text-xl">💬</span>
-              Chats are moderated. Please keep it respectful
+              No login required. Chats are moderated. Please keep it respectful
             </div>
           </div>
           
