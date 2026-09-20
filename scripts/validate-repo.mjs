@@ -38,6 +38,7 @@ const infrastructureFiles = ["docker-compose.infrastructure.yml", "infra/README.
 for (const file of infrastructureFiles) {
   assert.ok(fs.existsSync(file), `Missing infrastructure manifest: ${file}`);
 }
+
 const compose = fs.readFileSync("docker-compose.infrastructure.yml", "utf8");
 assert.ok(compose.includes("services: {}"), "Infrastructure compose must remain empty for single-instance deployment");
 const render = fs.readFileSync("render.yaml", "utf8");
@@ -48,4 +49,3 @@ assert.equal(compose.includes("redis:"), false, "Redis must not be provisioned")
 assert.equal(compose.includes("turn:"), false, "TURN must not be provisioned");
 assert.equal(render.includes("TURN_SERVERS"), false, "TURN must not be configured");
 assert.equal(render.includes("REDIS_URL"), false, "Redis must not be configured");
-}
