@@ -885,7 +885,7 @@ async function startServer() {
       io.to(partnerId).emit("game_challenge_received", { gameType, challengerId: myUid, challengeId });
     });
     
-    socket.on("game_challenge_accept", (payload: unknown) => {
+    socket.on("game_challenge_accept", async (payload: unknown) => {
       if (!isPlainObject(payload)) return;
       const { challengerId, gameType, challengeId } = payload;
       if (typeof challengerId !== "string" || typeof gameType !== "string" || typeof challengeId !== "string") return;
@@ -927,7 +927,7 @@ async function startServer() {
       io.to(myUid).emit("game_started", { gameId, gameType: pending.gameType, role: "guest", state: session.state });
     });
     
-    socket.on("game_challenge_decline", (payload: unknown) => {
+    socket.on("game_challenge_decline", async (payload: unknown) => {
       if (!isPlainObject(payload)) return;
       const { challengerId, challengeId } = payload;
       if (challengeId && typeof challengeId === "string") {
