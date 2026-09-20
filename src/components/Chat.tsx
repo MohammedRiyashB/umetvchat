@@ -220,7 +220,12 @@ export default function Chat({ onBack }: ChatProps) {
       };
 
       socket.on('connect_error', async (error) => {
-        console.error("[UmeTV Socket] connect_error:", { message: error.message, description: error.description, url: socketUrl });
+        const socketError = error as Error & { description?: unknown };
+        console.error("[UmeTV Socket] connect_error:", {
+          message: socketError.message,
+          description: socketError.description,
+          url: socketUrl
+        });
         if (error.message === "invalid_token" || error.message === "authentication_required" || error.message === "app_check_required" || error.message === "account_restricted") {
             if (auth.currentUser) {
                 try {
