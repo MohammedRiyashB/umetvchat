@@ -264,7 +264,7 @@ async function startServer() {
     if (redisReady && redisStateClient) {
       try {
         const raw = await redisStateClient.get(REDIS_MATCH_KEY_PREFIX + uid);
-        if (!raw) return users[uid] || null;
+        if (!raw) return null;
         const parsed = JSON.parse(raw) as SharedMatch;
         if (typeof parsed.partnerId !== "string" || typeof parsed.sessionId !== "string") return null;
         users[uid] = parsed.partnerId;
@@ -281,7 +281,7 @@ async function startServer() {
     if (redisReady && redisStateClient) {
       try {
         const raw = await redisStateClient.get(REDIS_MATCH_KEY_PREFIX + uid);
-        if (!raw) return matchSessions.get(uid) || null;
+        if (!raw) return null;
         const parsed = JSON.parse(raw) as SharedMatch;
         if (typeof parsed.partnerId !== "string" || typeof parsed.sessionId !== "string") return null;
         users[uid] = parsed.partnerId;
@@ -709,10 +709,8 @@ async function startServer() {
       if (currentPartnerId) {
         cleanupGame(currentPartnerId);
         io.to(currentPartnerId).emit("partner_left");
-        delete users[currentPartnerId];
-        delete users[myUid];
-        matchSessions.delete(currentPartnerId);
-        matchSessions.delete(myUid);
+        await clearSharedMatch(currentPartnerId);
+        await clearSharedMatch(myUid);
       }
         
       if (redisReady && redisStateClient) {
@@ -1009,10 +1007,8 @@ async function startServer() {
       io.to(partnerId).emit("partner_left");
       cleanupGame(myUid);
       socket.emit("partner_left");
-      delete users[myUid];
-      delete users[partnerId];
-      matchSessions.delete(myUid);
-      matchSessions.delete(partnerId);
+      await clearSharedMatch(myUid);
+      await clearSharedMatch(partnerId);
     });
     socket.on("leave_chat", async () => {
       cleanupGame(myUid);
