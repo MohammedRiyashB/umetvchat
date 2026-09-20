@@ -118,7 +118,15 @@ async function startServer() {
   const redisPubClient = redisUrl ? createClient({ url: redisUrl }) : null;
   const redisSubClient = redisPubClient ? redisPubClient.duplicate() : null;
   const redisStateClient = redisPubClient ? redisPubClient.duplicate() : null;
-
+  const closeRedisClients = async () => {
+    await Promise.allSettled(
+      [redisPubClient, redisSubClient, redisStateClient]
+        .filter((client): client is NonNullable<typeof redisPubClient> => Boolean(client))
+        .map(async (client) => {
+          if (client.isOpen) await client.close();
+        })
+    );
+  };
   if (redisPubClient && redisSubClient && redisStateClient) {
     const onRedisError = (error: unknown) => {
       console.error("[Redis] connection error:", error instanceof Error ? error.message : error);
@@ -137,11 +145,7 @@ async function startServer() {
       console.log("[Redis] connected; Socket.IO Redis adapter enabled");
     } catch (error) {
       console.error("[Redis] startup connection failed:", error instanceof Error ? error.message : error);
-      await Promise.allSettled([
-        redisPubClient.close(),
-        redisSubClient.close(),
-        redisStateClient.close(),
-      ]);
+      await closeRedisClients();
       if (redisRequired) {
         throw new Error("REDIS_REQUIRED_FOR_MULTI_INSTANCE is enabled but Redis is unavailable");
       }
@@ -1343,11 +1347,7 @@ async function startServer() {
   const shutdown = (signal: string) => {
     console.log(`[SHUTDOWN] Received ${signal}; closing server.`);
     io.close(async () => {
-      await Promise.allSettled([
-        redisPubClient?.close(),
-        redisSubClient?.close(),
-        redisStateClient?.close(),
-      ]);
+      await closeRedisClients();
       httpServer.close(() => process.exit(0));
     });
     setTimeout(() => process.exit(1), 10000).unref();
