@@ -658,7 +658,7 @@ async function startServer() {
     socket.on("game_exit", () => {
       cleanupGame(myUid);
     });
-    socket.on("game_action", (action: unknown) => {
+    socket.on("game_action", async (action: unknown) => {
       if (checkRateLimit(myUid, 'game_action', 20, 1000) || !isGameActionPayload(action)) return;
       const gameId = userGames[myUid];
       if (!gameId) return;
