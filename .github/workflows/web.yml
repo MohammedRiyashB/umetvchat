@@ -40,6 +40,9 @@ jobs:
       - name: Security regression tests
         run: npm test
 
+      - name: Infrastructure manifest validation
+        run: node scripts/validate-repo.mjs
+
       - name: Repository validation
         run: npm run validate:repo
 
