@@ -54,7 +54,9 @@ Carrom currently validates shot vectors, turn ownership, score counts and piece 
 
 ## 📶 Video reliability
 
-Configure `TURN_SERVERS` with a real production TURN provider. The browser uses STUN first and TURN fallback when configured. The UI exposes connection quality and a low-bandwidth mode.
+The realtime backend uses Socket.IO for signaling, matchmaking, chat and game actions. WebRTC carries the actual audio/video directly between browsers. The browser uses public STUN servers; no TURN service is configured.
+
+STUN-only WebRTC is intentionally used for the current single-instance deployment. Some restrictive networks may still require TURN in the future.
 
 ## 🚀 Deployment phases
 
@@ -99,11 +101,13 @@ Configure `TURN_SERVERS` with a real production TURN provider. The browser uses 
 - Static asset caching
 - Mobile browser resource cleanup
 
-### Phase 6 — Production scale
-- Redis shared state
-- Socket.IO Redis adapter
-- Shared matchmaking/presence/rate limits
-- Multi-instance realtime deployment
+### Phase 6 — Single-instance production
+
+- One Render realtime instance
+- In-memory matchmaking, presence, rate limits and game sessions
+- Socket.IO realtime transport
+- STUN-only WebRTC
+- No Redis or TURN service required
 
 ### Phase 7 — Observability and automation
 - Health/readiness endpoint
@@ -112,7 +116,7 @@ Configure `TURN_SERVERS` with a real production TURN provider. The browser uses 
 - TURN/network quality monitoring
 - Expanded E2E coverage
 
-Infrastructure-dependent items such as a real TURN provider, Redis service, Firebase App Check provider configuration, and moderator claims must be configured in their respective production systems; the repository includes the application hooks and safe defaults but does not provision those external services.
+The current deployment keeps infrastructure intentionally small: Render, Firebase and browser STUN. Redis and TURN are optional future additions and are not required by the current application.
 
 ## 🏗️ Architecture
 
@@ -131,4 +135,4 @@ Web browser
          └── Moderator API
 ```
 
-For horizontal scaling, place shared Redis state between the realtime instances and add a Socket.IO Redis adapter before running more than one realtime process.
+For the current deployment, keep exactly one realtime Render instance because realtime state is intentionally process-local.
