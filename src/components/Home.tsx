@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Target, Shield, Globe, Zap, MessageCircle, Coins, X, PlaySquare, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Target, Shield, Globe, Zap, MessageCircle, Coins, X, PlaySquare, LogOut, Heart, BarChart3 } from 'lucide-react';
 import { auth, googleProvider, db } from '../lib/firebase';
 import { deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import Banner300x250Ad from './ads/Banner300x250Ad';
@@ -38,6 +38,7 @@ const readError = (error: unknown): { code: string; message: string } => {
 export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
   const [onlineCount, setOnlineCount] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [guestMode, setGuestMode] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [email, setEmail] = useState('');
@@ -60,6 +61,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setIsLoggedIn(true);
+        setGuestMode(user.isAnonymous);
         // Check profile
         const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
@@ -107,9 +109,11 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
       return;
     }
 
-    const name = profileData.name.trim();
+    const isGuest = user.isAnonymous;
+    const name = profileData.name.trim() || `Guest-${user.uid.slice(-6)}`;
+    const gender = profileData.gender || (isGuest ? "prefer_not_to_say" : "");
 
-    if (!name || !profileData.age || !profileData.gender) {
+    if ((!isGuest && !name) || !profileData.age || !gender) {
       setAuthError('Please fill in Name, Date of Birth, and Gender.');
       return;
     }
@@ -154,7 +158,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     const profile = {
       name,
       age: profileData.age,
-      gender: profileData.gender,
+      gender,
       interests: cleanInterests
     };
 
@@ -179,6 +183,13 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
 
       setProfileData(profile);
       setShowProfileSetup(false);
+
+      if (continueAfterProfileRef.current) {
+        continueAfterProfileRef.current = false;
+        window.setTimeout(() => {
+          handleStartChatting();
+        }, 0);
+      }
 
       console.log('[PROFILE] SAVE SUCCESS');
     } catch (e) {
@@ -312,18 +323,47 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
 
   const [showInterstitial, setShowInterstitial] = useState(false);
   const [isStartingChat, setIsStartingChat] = useState(false);
+  const continueAfterProfileRef = useRef(false);
 
-  const handleStartChatting = () => {
+  const handleStartChatting = async () => {
     if (isStartingChat) return;
-    
-    setIsStartingChat(true);
-    // Show interstitial ad before starting chat
-    setShowInterstitial(true);
-    setTimeout(() => {
-      setShowInterstitial(false);
-      setIsStartingChat(false);
-      onStart();
-    }, 3000);
+    setAuthError('');
+
+    try {
+      let user = auth.currentUser;
+      if (!user) {
+        user = (await signInAnonymously(auth)).user;
+      }
+
+      const profileSnap = await getDoc(doc(db, 'users', user.uid));
+      if (!profileSnap.exists() || typeof profileSnap.data()?.age !== 'string') {
+        setGuestMode(user.isAnonymous);
+        setProfileData(prev => ({
+          name: prev.name || `Guest-${user.uid.slice(-6)}`,
+          age: typeof profileSnap.data()?.age === 'string' ? profileSnap.data()?.age : '',
+          gender: prev.gender || 'prefer_not_to_say',
+          interests: prev.interests || []
+        }));
+        continueAfterProfileRef.current = true;
+        setShowProfileSetup(true);
+        setAuthError('Date of birth is required to confirm you are 18+ before random chat.');
+        return;
+      }
+
+      setIsStartingChat(true);
+      setShowInterstitial(true);
+      setTimeout(() => {
+        setShowInterstitial(false);
+        setIsStartingChat(false);
+        onStart();
+      }, 1500);
+    } catch (error: unknown) {
+      const { code, message } = readError(error);
+      console.error("[GUEST] session start failed:", code);
+      setAuthError(code === "auth/admin-restricted-operation"
+        ? "Guest mode is not enabled in Firebase yet. Enable Anonymous Authentication in Firebase Console."
+        : message);
+    }
   };
 
   return (
@@ -364,6 +404,10 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
               Login / Signup
             </button>
           )}
+          <div className="hidden sm:flex items-center gap-2">
+            <button onClick={() => window.location.href = "/stats"} className="p-2 rounded-full hover:bg-slate-100 text-slate-600" title="Stats & leaderboard"><BarChart3 className="w-5 h-5" /></button>
+            <button onClick={() => window.location.href = "/favorites"} className="p-2 rounded-full hover:bg-slate-100 text-slate-600" title="Favorites"><Heart className="w-5 h-5" /></button>
+          </div>
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-600 bg-slate-100 px-4 py-2 rounded-full border border-slate-200">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></span>
             {onlineCount.toLocaleString()} Online
@@ -418,8 +462,9 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
               </button>
               
               <button onClick={handleGuestLogin} className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition-colors">
-                Continue as Guest
+                Start instantly — no login required
               </button>
+              <p className="text-xs text-slate-400 text-center -mt-2">A private anonymous session is created automatically. You still need to confirm you are 18+.</p>
               
               <div className="flex items-center gap-2 my-2">
                 <div className="flex-1 h-px bg-slate-200"></div>
@@ -500,9 +545,11 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
           <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
             <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50">
               <h3 className="text-xl font-black text-slate-800">
-                Complete Your Profile
+                {guestMode ? "Start as a Guest" : "Complete Your Profile"}
               </h3>
-              <p className="text-sm text-slate-500 font-medium mt-1">Tell us a bit about yourself</p>
+              <p className="text-sm text-slate-500 font-medium mt-1">
+                {guestMode ? "No account or signup is required. Confirm your age to continue." : "Tell us a bit about yourself"}
+              </p>
             </div>
             <div className="p-6 flex flex-col gap-4">
               {authError && (
@@ -545,6 +592,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                   <option value="" disabled>Select Gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
                 </select>
               </div>
 
