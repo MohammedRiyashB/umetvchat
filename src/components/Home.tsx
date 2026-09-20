@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Target, Shield, Globe, Zap, MessageCircle, Coins, PlaySquare, Heart, BarChart3 } from 'lucide-react';
-import { auth, db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth } from '../lib/firebase';
 import Banner300x250Ad from './ads/Banner300x250Ad';
 import NativeBannerAd from './ads/NativeBannerAd';
 import SEO from './SEO';
 
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { signInAnonymously } from 'firebase/auth';
 
 
 interface HomeProps {
@@ -28,155 +27,8 @@ const readError = (error: unknown): { code: string; message: string } => {
 
 export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
   const [onlineCount, setOnlineCount] = useState(0);
-  const [guestMode, setGuestMode] = useState(false);
-  const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const [authError, setAuthError] = useState('');
 
-  const [profileData, setProfileData] = useState({
-    name: '',
-    age: '',
-    gender: '',
-    interests: [] as string[]
-  });
   
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setGuestMode(user.isAnonymous);
-        // Check profile
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (!docSnap.exists()) {
-                    try {
-            setProfileData(prev => ({ ...prev, name: user.displayName || '' }));
-          } catch (e) {
-            console.error('Failed to init profile', e);
-          }
-        } else {
-          const data = docSnap.data();
-          const safeProfile = {
-            name: typeof data.name === "string" ? data.name : "",
-            age: typeof data.age === "string" ? data.age : "",
-            gender: typeof data.gender === "string" ? data.gender : "",
-            interests: Array.isArray(data.interests)
-              ? data.interests.filter((item): item is string => typeof item === "string").slice(0, 20)
-              : []
-          };
-          setProfileData(safeProfile);
-          localStorage.setItem(`umetv_profile_${user.uid}`, JSON.stringify({
-            name: safeProfile.name,
-            interests: safeProfile.interests
-          }));
-        }
-      } else {
-        for (const key of Object.keys(localStorage)) {
-          if (key.startsWith("umetv_profile_")) localStorage.removeItem(key);
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const saveProfile = async () => {
-    const user = auth.currentUser;
-
-    if (!user) {
-      setAuthError('Firebase login session is not ready. Please wait a moment and try again.');
-      console.error('[PROFILE] No authenticated Firebase user');
-      return;
-    }
-
-    const isGuest = user.isAnonymous;
-    const name = profileData.name.trim() || `Guest-${user.uid.slice(-6)}`;
-    const gender = profileData.gender || (isGuest ? "prefer_not_to_say" : "");
-
-    if ((!isGuest && !name) || !profileData.age || !gender) {
-      setAuthError('Please fill in Name, Date of Birth, and Gender.');
-      return;
-    }
-
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(profileData.age)) {
-      setAuthError('Please enter a valid Date of Birth.');
-      return;
-    }
-
-    const dob = new Date(`${profileData.age}T00:00:00.000Z`);
-    if (Number.isNaN(dob.getTime()) || dob.toISOString().slice(0, 10) !== profileData.age) {
-      setAuthError('Please enter a valid Date of Birth.');
-      return;
-    }
-
-    const today = new Date();
-    let age = today.getUTCFullYear() - dob.getUTCFullYear();
-    const birthdayPassed =
-      today.getUTCMonth() > dob.getUTCMonth() ||
-      (today.getUTCMonth() === dob.getUTCMonth() && today.getUTCDate() >= dob.getUTCDate());
-    if (!birthdayPassed) age -= 1;
-
-    if (age < 18) {
-      setAuthError('You must be at least 18 years old to use UmeTV.');
-      return;
-    }
-
-    const cleanInterests = Array.from(new Set(
-      (Array.isArray(profileData.interests) ? profileData.interests : [])
-        .filter((item): item is string => typeof item === 'string')
-        .map(item => item.trim().slice(0, 50))
-        .filter(Boolean)
-    )).slice(0, 20);
-
-    if (name.length > 100 || profileData.gender.length > 32) {
-      setAuthError('Please keep your profile information within the allowed limits.');
-      return;
-    }
-
-    setAuthError('');
-
-    const profile = {
-      name,
-      age: profileData.age,
-      gender: gender || "prefer_not_to_say",
-      interests: cleanInterests
-    };
-
-    try {
-      console.log('[PROFILE] Saving for UID:', user.uid);
-
-      await setDoc(
-        doc(db, 'users', user.uid),
-        profile,
-        { merge: true }
-      );
-
-      const localProfileCache = {
-        name: profile.name,
-        interests: profile.interests
-      };
-
-      localStorage.setItem(
-        `umetv_profile_${user.uid}`,
-        JSON.stringify(localProfileCache)
-      );
-
-      setProfileData(profile);
-      setShowProfileSetup(false);
-
-      if (continueAfterProfileRef.current) {
-        continueAfterProfileRef.current = false;
-        window.setTimeout(() => {
-          handleStartChatting();
-        }, 0);
-      }
-
-      console.log('[PROFILE] SAVE SUCCESS');
-    } catch (e) {
-      console.error('[PROFILE] SAVE ERROR:', e);
-      setAuthError(
-        `${e?.code || 'unknown'}: ${e?.message || 'Failed to save profile'}`
-      );
-    }
-  };
 
   useEffect(() => {
     const fetchCount = async () => {
@@ -203,36 +55,19 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
 
   const [showInterstitial, setShowInterstitial] = useState(false);
   const [isStartingChat, setIsStartingChat] = useState(false);
-  const continueAfterProfileRef = useRef(false);
 
   const handleStartChatting = async () => {
     if (isStartingChat) return;
-    setAuthError('');
 
     try {
-      let user = auth.currentUser;
-      if (!user) {
-        user = (await signInAnonymously(auth)).user;
-      }
-
-      const profileSnap = await getDoc(doc(db, 'users', user.uid));
-      if (!profileSnap.exists() || typeof profileSnap.data()?.age !== 'string') {
-        setGuestMode(user.isAnonymous);
-        setProfileData(prev => ({
-          name: prev.name || `Guest-${user.uid.slice(-6)}`,
-          age: typeof profileSnap.data()?.age === 'string' ? profileSnap.data()?.age : '',
-          gender: prev.gender || 'prefer_not_to_say',
-          interests: prev.interests || []
-        }));
-        continueAfterProfileRef.current = true;
-        setShowProfileSetup(true);
-        setAuthError('Date of birth is required to confirm you are 18+ before random chat.');
-        return;
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
       }
 
       setIsStartingChat(true);
       setShowInterstitial(true);
-      setTimeout(() => {
+
+      window.setTimeout(() => {
         setShowInterstitial(false);
         setIsStartingChat(false);
         onStart();
@@ -240,9 +75,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     } catch (error: unknown) {
       const { code, message } = readError(error);
       console.error("[GUEST] session start failed:", code);
-      setAuthError(code === "auth/admin-restricted-operation"
-        ? "Guest mode is not enabled in Firebase yet. Enable Anonymous Authentication in Firebase Console."
-        : message);
+      console.error("[GUEST] anonymous authentication failed:", message);
     }
   };
 
@@ -285,46 +118,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
         </div>
       )}
 
-      {/* Profile Setup Modal */}
-      {showProfileSetup && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
-            <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50">
-              <h3 className="text-xl font-black text-slate-800">
-                Quick age confirmation
-              </h3>
-              <p className="text-sm text-slate-500 font-medium mt-1">
-                No login or signup is required. Confirm you are 18+ to continue.
-              </p>
-            </div>
-            <div className="p-6 flex flex-col gap-4">
-              {authError && (
-                <div className="p-3 bg-red-50 text-red-600 text-sm font-medium rounded-lg border border-red-100">
-                  {authError}
-                </div>
-              )}
-              
-              <div className="rounded-2xl bg-sky-50 border border-sky-100 p-4 text-sm text-slate-600 font-medium">
-                Your chat session is anonymous. We only need your date of birth to confirm that you are 18 or older.
-              </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-slate-700">Date of Birth <span className="text-red-500">*</span></label>
-                <input 
-                  type="date" 
-                  value={profileData.age}
-                  onChange={(e) => setProfileData({...profileData, age: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
-                />
-              </div>
-
-              <button onClick={saveProfile} className="w-full py-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-bold text-lg transition-all shadow-md mt-2">
-                Save Profile
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
 
       <main className="flex-1 flex flex-col items-center">
