@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import {
   initializeAuth,
   browserLocalPersistence,
+  GoogleAuthProvider,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { initializeAppCheck, ReCaptchaV3Provider, type AppCheck } from "firebase/app-check";
@@ -31,4 +32,6 @@ const auth = initializeAuth(app, {
 });
 const db = getFirestore(app, "umetvchat");
 
-export { app, appCheck, auth, db };
+const googleProvider = new GoogleAuthProvider();
+
+export { app, appCheck, auth, db, googleProvider };
