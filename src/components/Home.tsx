@@ -53,7 +53,6 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
           } catch (e) {
             console.error('Failed to init profile', e);
           }
-          setShowProfileSetup(true);
         } else {
           const data = docSnap.data();
           const safeProfile = {
@@ -137,7 +136,7 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
     const profile = {
       name,
       age: profileData.age,
-      gender,
+      gender: gender || "prefer_not_to_say",
       interests: cleanInterests
     };
 
@@ -292,10 +291,10 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
           <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col">
             <div className="p-6 pb-4 border-b border-slate-100 bg-slate-50">
               <h3 className="text-xl font-black text-slate-800">
-                "Quick age confirmation"
+                Quick age confirmation
               </h3>
               <p className="text-sm text-slate-500 font-medium mt-1">
-                "No login or signup is required. Confirm you are 18+ to continue."
+                No login or signup is required. Confirm you are 18+ to continue.
               </p>
             </div>
             <div className="p-6 flex flex-col gap-4">
@@ -305,16 +304,8 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                 </div>
               )}
               
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-slate-700">Name <span className="text-red-500">*</span></label>
-                <input 
-                  type="text" 
-                  value={profileData.name}
-                  onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                  
-                  placeholder="Your Name" 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
-                />
+              <div className="rounded-2xl bg-sky-50 border border-sky-100 p-4 text-sm text-slate-600 font-medium">
+                Your chat session is anonymous. We only need your date of birth to confirm that you are 18 or older.
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -323,45 +314,8 @@ export default function Home({ onStart, onNavigate, currentPage }: HomeProps) {
                   type="date" 
                   value={profileData.age}
                   onChange={(e) => setProfileData({...profileData, age: e.target.value})}
-                  
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all" 
                 />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-slate-700">Gender <span className="text-red-500">*</span></label>
-                <select
-                  value={profileData.gender}
-                  onChange={(e) => setProfileData({...profileData, gender: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all appearance-none"
-                  style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5em 1.5em' }}
-                >
-                  <option value="" disabled>Select Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="prefer_not_to_say">Prefer not to say</option>
-                </select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-bold text-slate-700">Interests (Tags)</label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {['Music', 'Gaming', 'Football', 'Anime', 'Technology', 'Movies', 'Sports'].map(tag => (
-                    <button 
-                      key={tag}
-                      onClick={() => {
-                        if (profileData.interests.includes(tag)) {
-                          setProfileData(prev => ({ ...prev, interests: prev.interests.filter(t => t !== tag) }));
-                        } else {
-                          setProfileData(prev => ({ ...prev, interests: [...prev.interests, tag] }));
-                        }
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${profileData.interests.includes(tag) ? 'bg-sky-500 text-white border-sky-500' : 'bg-white text-slate-600 border-slate-200 hover:border-sky-300'}`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <button onClick={saveProfile} className="w-full py-3.5 bg-sky-500 hover:bg-sky-600 text-white rounded-xl font-bold text-lg transition-all shadow-md mt-2">
