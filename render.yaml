@@ -42,3 +42,5 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: REDIS_REQUIRED_FOR_MULTI_INSTANCE
+        value: "false"
