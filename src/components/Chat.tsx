@@ -1,9 +1,10 @@
 import { v4 as uuidv4 } from "uuid";
 import React, { useEffect, useRef, useState } from 'react';
 import { appCheck, auth } from "../lib/firebase";
+import { signInAnonymously } from "firebase/auth";
 import { getToken as getAppCheckToken } from "firebase/app-check";
 import { io, Socket } from 'socket.io-client';
-import { Send, Video, VideoOff, Minimize2, Maximize2, Mic, MicOff, Play, Square, SkipForward, AlertTriangle, MessageSquare, Smile, Gamepad2 } from 'lucide-react';
+import { Send, Video, VideoOff, Minimize2, Maximize2, Mic, MicOff, Play, Square, SkipForward, AlertTriangle, MessageSquare, Smile, Gamepad2, Wifi, WifiOff, Star, Bell, BellOff } from 'lucide-react';
 import Banner320x50Ad from './ads/Banner320x50Ad';
 import GameSelector from './games/GameSelector';
 import GamePanel from './games/GamePanel';
@@ -74,6 +75,14 @@ export default function Chat({ onBack }: ChatProps) {
   const [hasAudio, setHasAudio] = useState(true);
   const [mediaError, setMediaError] = useState(false);
   const [isLocalVideoMinimized, setIsLocalVideoMinimized] = useState(false);
+  const [networkQuality, setNetworkQuality] = useState<'good' | 'fair' | 'poor' | 'offline'>('good');
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    typeof Notification !== 'undefined' && Notification.permission === 'granted'
+  );
+  const [lowBandwidth, setLowBandwidth] = useState(
+    typeof window !== 'undefined' && localStorage.getItem('umetv_low_bandwidth') === 'true'
+  );
 
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -104,6 +113,28 @@ export default function Chat({ onBack }: ChatProps) {
   }, [appState]);
 
   useEffect(() => {
+    const update = () => {
+      if (!navigator.onLine) {
+        setNetworkQuality('offline');
+        return;
+      }
+      const connection = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection;
+      const type = connection?.effectiveType;
+      setNetworkQuality(type === 'slow-2g' || type === '2g' ? 'poor' : type === '3g' ? 'fair' : 'good');
+    };
+    update();
+    window.addEventListener('online', update);
+    window.addEventListener('offline', update);
+    const connection = (navigator as Navigator & { connection?: EventTarget & { addEventListener: Function; removeEventListener: Function } }).connection;
+    connection?.addEventListener('change', update);
+    return () => {
+      window.removeEventListener('online', update);
+      window.removeEventListener('offline', update);
+      connection?.removeEventListener('change', update);
+    };
+  }, []);
+
+  useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
@@ -121,17 +152,16 @@ export default function Chat({ onBack }: ChatProps) {
     }
 
     const setupSocket = async () => {
-      const user = await new Promise<typeof auth.currentUser>(resolve => {
-        if (auth.currentUser) {
-          resolve(auth.currentUser);
+      let user = auth.currentUser;
+      if (!user) {
+        try {
+          user = (await signInAnonymously(auth)).user;
+        } catch (error) {
+          console.error("[UmeTV Auth] Anonymous session failed:", error);
+          if (isMounted) addSystemMessage("Guest mode could not start. Please enable Anonymous Authentication in Firebase.");
           return;
         }
-
-        const unsub = auth.onAuthStateChanged(currentUser => {
-          unsub();
-          resolve(currentUser);
-        });
-      });
+      }
 
       if (!isMounted) return;
 
@@ -177,7 +207,7 @@ export default function Chat({ onBack }: ChatProps) {
 
       socket.on('connect_error', async (error) => {
         console.error('[UmeTV Socket] connect_error:', error.message);
-        if (error.message === "invalid_token" || error.message === "authentication_required" || error.message === "app_check_required") {
+        if (error.message === "invalid_token" || error.message === "authentication_required" || error.message === "app_check_required" || error.message === "account_restricted") {
             if (auth.currentUser) {
                 try {
                     const refreshedAuth: { token: string; appCheckToken?: string } = {
@@ -223,6 +253,8 @@ export default function Chat({ onBack }: ChatProps) {
         if (data.partnerId) partnerIdRef.current = data.partnerId;
         setAppState('CONNECTED');
         setMessages([]);
+        setIsFavorite(false);
+        socket.emit('favorite_status');
         addSystemMessage("You're now chatting with a random stranger. Say hi!");
         await setupPeerConnection(data.initiator, data.partnerId);
       });
@@ -232,6 +264,7 @@ export default function Chat({ onBack }: ChatProps) {
         addSystemMessage('Stranger has disconnected.');
         cleanupPeerConnection();
         setActiveGame(null);
+        setIsFavorite(false);
       });
 
       socket.on('webrtc_offer', async (data: { sessionId: string; sdp?: RTCSessionDescriptionInit }) => {
@@ -284,9 +317,21 @@ export default function Chat({ onBack }: ChatProps) {
         }
       });
 
+      socket.on('favorite_status', (data: { favorite?: boolean }) => {
+        setIsFavorite(data?.favorite === true);
+      });
+
+      socket.on('moderation_notice', (data: { message?: string }) => {
+        addSystemMessage(data?.message || "A moderator action was applied to your session.");
+        stopChat();
+      });
+
       socket.on('chat_message', (msg: unknown) => {
         if (typeof msg !== 'string' || msg.length > 500) return;
-        setMessages(prev => [...prev, { text: msg, sender: 'partner', timestamp: new Date() }]);
+        setMessages(prev => [...prev, { id: uuidv4(), text: msg, sender: 'partner' }]);
+        if (notificationsEnabled && document.hidden && typeof Notification !== 'undefined') {
+          new Notification('UmeTV message', { body: msg.slice(0, 120) });
+        }
       });
 
       socket.on('chat_message_blocked', () => {
@@ -367,7 +412,7 @@ export default function Chat({ onBack }: ChatProps) {
     const initMedia = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, 
+          video: { facingMode: "user", width: { ideal: lowBandwidth ? 320 : 640 }, height: { ideal: lowBandwidth ? 240 : 480 }, frameRate: { ideal: lowBandwidth ? 15 : 30, max: lowBandwidth ? 15 : 30 } }, 
           audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } 
         });
         if (!active) {
@@ -476,6 +521,13 @@ export default function Chat({ onBack }: ChatProps) {
       }
     };
 
+    pc.onconnectionstatechange = () => {
+      const state = pc.connectionState;
+      if (state === 'connected') setNetworkQuality(networkQuality === 'poor' ? 'poor' : 'good');
+      if (state === 'connecting') setNetworkQuality('fair');
+      if (state === 'disconnected' || state === 'failed') setNetworkQuality('poor');
+    };
+
     const stream = await waitForMedia();
     if (stream) {
       stream.getTracks().forEach(track => {
@@ -492,6 +544,18 @@ export default function Chat({ onBack }: ChatProps) {
         await audioSender.setParameters(parameters);
       } catch (e) {
         console.warn('Could not set audio bitrate limit', e);
+      }
+    }
+    const videoSender = pc.getSenders().find(sender => sender.track?.kind === "video");
+    if (videoSender) {
+      try {
+        const parameters = videoSender.getParameters();
+        parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
+        parameters.encodings[0].maxBitrate = lowBandwidth ? 350000 : 1200000;
+        parameters.encodings[0].maxFramerate = lowBandwidth ? 15 : 30;
+        await videoSender.setParameters(parameters);
+      } catch (e) {
+        console.warn('Could not set video bitrate limit', e);
       }
     }
 
@@ -590,10 +654,9 @@ export default function Chat({ onBack }: ChatProps) {
       setAppState("WAITING");
       setMessages([]);
 
-      const user = auth.currentUser;
+      let user = auth.currentUser;
       if (!user) {
-        addSystemMessage("Please sign in first.");
-        return;
+        user = (await signInAnonymously(auth)).user;
       }
       
       console.log("[UmeTV Chat] Joining matchmaking queue");
@@ -615,6 +678,42 @@ export default function Chat({ onBack }: ChatProps) {
     cleanupPeerConnection();
     setAppState('IDLE');
     addSystemMessage('You disconnected.');
+  };
+
+  const enableNotifications = async () => {
+    if (typeof Notification === 'undefined') return;
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationsEnabled(permission === 'granted');
+    } catch {
+      setNotificationsEnabled(false);
+    }
+  };
+
+  const toggleFavorite = () => {
+    if (!socketRef.current || appState !== 'CONNECTED') return;
+    if (isFavorite) socketRef.current.emit('unfavorite_user');
+    else socketRef.current.emit('favorite_user');
+  };
+
+  const toggleLowBandwidth = async () => {
+    const next = !lowBandwidth;
+    setLowBandwidth(next);
+    localStorage.setItem('umetv_low_bandwidth', String(next));
+    const sender = pcRef.current?.getSenders().find(item => item.track?.kind === "video");
+    if (!sender) return;
+    try {
+      const parameters = sender.getParameters();
+      parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
+      parameters.encodings[0].maxBitrate = next ? 350000 : 1200000;
+      parameters.encodings[0].maxFramerate = next ? 15 : 30;
+      await sender.setParameters(parameters);
+      setToastMessage(next ? "Low-bandwidth mode enabled." : "HD mode enabled.");
+      setTimeout(() => setToastMessage(''), 2500);
+    } catch {
+      setToastMessage("Your browser does not support live quality switching.");
+      setTimeout(() => setToastMessage(''), 2500);
+    }
   };
 
   const reportUser = () => {
@@ -856,14 +955,27 @@ export default function Chat({ onBack }: ChatProps) {
                   Connected
                 </span>
               )}
+              <span className="text-xs font-semibold text-white bg-black/40 backdrop-blur-sm px-2.5 py-1.5 rounded-md flex items-center gap-1.5">
+                {networkQuality === 'offline' ? <WifiOff className="w-3.5 h-3.5 text-red-300" /> : <Wifi className="w-3.5 h-3.5 text-emerald-300" />}
+                {networkQuality === 'good' ? 'Good' : networkQuality === 'fair' ? 'Fair' : networkQuality === 'poor' ? 'Poor' : 'Offline'}
+              </span>
               {appState === 'CONNECTED' && (
-                <button 
-                  onClick={reportUser}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-red-600/90 hover:bg-red-600 backdrop-blur-sm rounded-md transition-colors shadow-sm"
-                  title="Report and block user for misconduct"
-                >
-                  <AlertTriangle className="w-4 h-4" /> Report & Block
-                </button>
+                <>
+                  <button onClick={toggleFavorite} className="p-1.5 rounded-md bg-black/40 text-white hover:bg-black/60" title={isFavorite ? "Remove favorite" : "Save stranger"}>
+                    <Star className={`w-4 h-4 ${isFavorite ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                  </button>
+                  <button onClick={toggleLowBandwidth} className="px-2 py-1.5 rounded-md bg-black/40 text-white text-[11px] font-bold hover:bg-black/60">
+                    {lowBandwidth ? "Low data" : "HD"}
+                  </button>
+                  {!notificationsEnabled && (
+                    <button onClick={enableNotifications} className="p-1.5 rounded-md bg-black/40 text-white hover:bg-black/60" title="Enable notifications">
+                      <BellOff className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button onClick={reportUser} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-red-600/90 hover:bg-red-600 backdrop-blur-sm rounded-md transition-colors shadow-sm" title="Report and block user for misconduct">
+                    <AlertTriangle className="w-4 h-4" /> Report
+                  </button>
+                </>
               )}
             </div>
             {/* Ume Tv Watermark */}
