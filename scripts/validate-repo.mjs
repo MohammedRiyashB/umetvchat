@@ -30,6 +30,6 @@ assert.equal(fs.existsSync(".github/workflows/android.yml"), false, "Android wor
 
 const rules = fs.readFileSync("firestore.rules", "utf8");
 assert.ok(rules.includes("prefer_not_to_say"), "Guest-safe gender option must remain supported");
-assert.equal((rules.match(/match \/\\{document=\\*\\*\\}/g) || []).length, 1, "Firestore catch-all rule should be singular");
+assert.equal((rules.match(/match \/\{document=\*\*\}/g) || []).length, 1, "Firestore catch-all rule should be singular");
 
 console.log("Repository validation passed.");
