@@ -26,7 +26,13 @@ test("Firestore user profiles are restricted to expected fields", () => {
   assert.match(rules, /data\.interests\.size\(\) <= 20/);
 });
 
-test("website-only build has no Android/Captacitor dependency path", () => {
+test("Firestore rules support guest-safe gender choice and have one catch-all", () => {
+  assert.ok(rules.includes("data.age.matches('^\\\\d{4}-\\\\d{2}-\\\\d{2}$')"));
+  assert.ok(rules.includes("prefer_not_to_say"));
+  assert.equal((rules.match(/match \/\{document=\*\*\}/g) || []).length, 1);
+});
+
+test("website-only build has no Android/Capacitor dependency path", () => {
   assert.equal(fs.existsSync("android"), false);
   assert.equal(fs.existsSync("capacitor.config.ts"), false);
   assert.equal(packageJson.dependencies?.["@capacitor/android"], undefined);
@@ -49,7 +55,7 @@ test("server-side chat moderation cannot be bypassed by skipping the client UI",
 
 test("reports are persisted with controlled categories", () => {
   assert.match(server, /allowedCategories = new Set/);
-  assert.match(server, /collection\('reports'\)/);
+  assert.match(server, /collection\(["']reports["']\)/);
   assert.match(server, /status: "open"/);
 });
 
@@ -76,10 +82,6 @@ test("realtime connection attempts are rate-limited before authentication", () =
   assert.match(server, /rate_limited/);
 });
 
-
-test("Firestore rules are syntactically shaped and support guest-safe gender choice", () => {
-  assert.ok(rules.includes("data.age.matches('^\\\\d{4}-\\\\d{2}-\\\\d{2}
-
 test("guest chat can bootstrap anonymous Firebase auth from the website", () => {
   const home = fs.readFileSync("src/components/Home.tsx", "utf8");
   const chat = fs.readFileSync("src/components/Chat.tsx", "utf8");
@@ -98,7 +100,7 @@ test("moderation, favorites and game-stat APIs exist server-side", () => {
 });
 
 test("production SPA fallback is rate limited", () => {
-  assert.match(server, /app\.get\("\/{\*splat}", pageLimiter/);
+  assert.match(server, /app\.get\("\/\{\*splat\}", pageLimiter/);
 });
 
 test("moderation restrictions are enforced on realtime connections", () => {
@@ -112,40 +114,10 @@ test("feature pages are present", () => {
   assert.equal(fs.existsSync("src/components/Favorites.tsx"), true);
   assert.equal(fs.existsSync("src/lib/api.ts"), true);
 });
-)"));
-  assert.match(rules, /prefer_not_to_say/);
-  assert.equal((rules.match(/match \/\{document=\*\*\}/g) || []).length, 1);
-});
 
-test("guest chat can bootstrap anonymous Firebase auth from the website", () => {
-  const home = fs.readFileSync("src/components/Home.tsx", "utf8");
-  const chat = fs.readFileSync("src/components/Chat.tsx", "utf8");
-  assert.match(home, /signInAnonymously\(auth\)/);
-  assert.match(chat, /signInAnonymously\(auth\)/);
-  assert.match(home, /no login required/i);
-});
-
-test("moderation, favorites and game-stat APIs exist server-side", () => {
-  assert.match(server, /\/api\/admin\/reports/);
-  assert.match(server, /\/api\/admin\/users\/:uid\/action/);
-  assert.match(server, /favorite_user/);
-  assert.match(server, /\/api\/me\/favorites/);
-  assert.match(server, /\/api\/me\/stats/);
-  assert.match(server, /\/api\/leaderboard/);
-});
-
-test("production SPA fallback is rate limited", () => {
-  assert.match(server, /app\.get\("\/{\*splat}", pageLimiter/);
-});
-
-test("moderation restrictions are enforced on realtime connections", () => {
-  assert.match(server, /getActiveRestriction\(socket\.data\.userId as string\)/);
-  assert.match(server, /account_restricted/);
-});
-
-test("feature pages are present", () => {
-  assert.equal(fs.existsSync("src/components/Admin.tsx"), true);
-  assert.equal(fs.existsSync("src/components/Stats.tsx"), true);
-  assert.equal(fs.existsSync("src/components/Favorites.tsx"), true);
-  assert.equal(fs.existsSync("src/lib/api.ts"), true);
+test("server tracks operational metrics", () => {
+  assert.match(server, /const metrics =/);
+  assert.match(server, /metrics\.matches/);
+  assert.match(server, /metrics\.messages/);
+  assert.match(server, /metrics\.webRtcIce/);
 });
