@@ -1,8 +1,9 @@
 import { v4 as uuidv4 } from "uuid";
 import React, { useEffect, useRef, useState } from 'react';
-import { appCheck, auth } from "../lib/firebase";
+import { appCheck, auth, db } from "../lib/firebase";
 import { signInAnonymously } from "firebase/auth";
 import { getToken as getAppCheckToken } from "firebase/app-check";
+import { doc, getDoc } from "firebase/firestore";
 import { io, Socket } from 'socket.io-client';
 import { Send, Video, VideoOff, Minimize2, Maximize2, Mic, MicOff, Play, Square, SkipForward, AlertTriangle, MessageSquare, Smile, Gamepad2, Wifi, WifiOff, Star, Bell, BellOff } from 'lucide-react';
 import Banner320x50Ad from './ads/Banner320x50Ad';
@@ -658,7 +659,40 @@ export default function Chat({ onBack }: ChatProps) {
       if (!user) {
         user = (await signInAnonymously(auth)).user;
       }
-      
+
+      // The server is authoritative for the profile, so verify the Firestore
+      // profile exists before entering matchmaking. This also prevents the
+      // confusing "profile with valid Date of Birth" error when /chat is opened
+      // directly instead of through the Home profile flow.
+      const profileSnap = await getDoc(doc(db, "users", user.uid));
+      const profileData = profileSnap.exists() ? profileSnap.data() : null;
+      const dob = typeof profileData?.age === "string" ? profileData.age : "";
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+        setAppState("IDLE");
+        addSystemMessage("Please return to the UmeTV home page and complete your Date of Birth profile before starting chat.");
+        console.warn("[UmeTV Chat] Matchmaking blocked: missing valid profile DOB.");
+        return;
+      }
+
+      const parsedDob = new Date(`${dob}T00:00:00.000Z`);
+      if (Number.isNaN(parsedDob.getTime()) || parsedDob.toISOString().slice(0, 10) !== dob) {
+        setAppState("IDLE");
+        addSystemMessage("Your Date of Birth is invalid. Please update your profile before starting chat.");
+        return;
+      }
+
+      const today = new Date();
+      let calculatedAge = today.getUTCFullYear() - parsedDob.getUTCFullYear();
+      const birthdayPassed =
+        today.getUTCMonth() > parsedDob.getUTCMonth() ||
+        (today.getUTCMonth() === parsedDob.getUTCMonth() && today.getUTCDate() >= parsedDob.getUTCDate());
+      if (!birthdayPassed) calculatedAge -= 1;
+      if (calculatedAge < 18) {
+        setAppState("IDLE");
+        addSystemMessage("You must be at least 18 years old to use UmeTV.");
+        return;
+      }
+
       console.log("[UmeTV Chat] Joining matchmaking queue");
       socket.emit("join_queue");
 
