@@ -11,7 +11,6 @@ type StatsResponse = {
 };
 
 type LeaderboardRow = {
-  uid: string;
   name: string;
   points: number;
   wins: number;
@@ -106,7 +105,7 @@ export default function Stats() {
           </div>
           <div className="divide-y divide-white/10">
             {leaders.map((row, index) => (
-              <div key={row.uid} className="grid grid-cols-[40px_1fr_auto] gap-3 items-center px-5 py-4">
+              <div key={row.name + "-" + index} className="grid grid-cols-[40px_1fr_auto] gap-3 items-center px-5 py-4">
                 <div className="text-slate-500 font-black">#{index + 1}</div>
                 <div>
                   <div className="font-bold">{row.name}</div>
